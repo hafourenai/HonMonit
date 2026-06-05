@@ -1,413 +1,590 @@
 <!DOCTYPE html>
-
-<html class="dark" lang="en"><head>
+<html lang="en">
+<head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>NOC Command Center | Device Monitoring</title>
+<title>HonMonit | Device Monitoring</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0&amp;display=swap" rel="stylesheet"/>
 <style>
-        :root {
-            --glass-bg: rgba(18, 33, 49, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.1);
+:root {
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --primary: #2563eb;
+    --primary-light: #dbeafe;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --border: #e2e8f0;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
+}
+body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+}
+.glass-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+.glass-panel:hover {
+    box-shadow: var(--shadow);
+}
+.status-pulse::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+.modal-backdrop.active { display: flex; }
+.modal-content {
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    max-width: 480px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 60;
+    min-width: 180px;
+    padding: 4px;
+}
+.dropdown-menu.active { display: block; }
+.notif-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    z-index: 60;
+    width: 320px;
+    max-height: 360px;
+    overflow-y: auto;
+}
+.notif-dropdown.active { display: block; }
+.filter-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 60;
+    min-width: 160px;
+    padding: 4px;
+}
+.filter-dropdown.active { display: block; }
+.row-actions-menu {
+    display: none;
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 70;
+    min-width: 160px;
+    padding: 4px;
+}
+.row-actions-menu.active { display: block; }
+.view-container { display: none; }
+.view-container.active { display: block; }
+</style>
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            fontFamily: {
+                'sans': ['Inter', 'system-ui', 'sans-serif'],
+                'mono': ['JetBrains Mono', 'monospace'],
+            }
         }
-        body {
-            background-color: #051424;
-            color: #d4e4fa;
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-        }
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            transition: all 0.2s ease-in-out;
-        }
-        .glass-panel:hover {
-            background: rgba(18, 33, 49, 0.6);
-            border-color: rgba(142, 213, 255, 0.3);
-        }
-        .status-pulse {
-            position: relative;
-        }
-        .status-pulse::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(142, 213, 255, 0.2);
-            border-radius: 10px;
-        }
-    </style>
-<script id="tailwind-config">
-        tailwind.config = {
-          darkMode: "class",
-          theme: {
-            extend: {
-              "colors": {
-                      "tertiary-fixed": "#dae2fd",
-                      "surface-container-low": "#0d1c2d",
-                      "surface-container-high": "#1c2b3c",
-                      "on-primary-fixed-variant": "#004c69",
-                      "surface-dim": "#051424",
-                      "on-secondary-fixed-variant": "#3c475a",
-                      "primary-container": "#38bdf8",
-                      "surface-tint": "#7bd0ff",
-                      "surface-container-lowest": "#010f1f",
-                      "inverse-on-surface": "#233143",
-                      "on-tertiary-container": "#3c4459",
-                      "outline-variant": "#3e484f",
-                      "on-primary": "#00354a",
-                      "surface-bright": "#2c3a4c",
-                      "on-primary-fixed": "#001e2c",
-                      "secondary": "#bcc7de",
-                      "on-error": "#690005",
-                      "error-container": "#93000a",
-                      "on-primary-container": "#004965",
-                      "tertiary": "#c5cce6",
-                      "primary-fixed-dim": "#7bd0ff",
-                      "on-background": "#d4e4fa",
-                      "tertiary-fixed-dim": "#bec6e0",
-                      "on-surface": "#d4e4fa",
-                      "on-error-container": "#ffdad6",
-                      "secondary-container": "#3e495d",
-                      "outline": "#87929a",
-                      "tertiary-container": "#a9b1ca",
-                      "background": "#051424",
-                      "secondary-fixed-dim": "#bcc7de",
-                      "secondary-fixed": "#d8e3fb",
-                      "surface": "#051424",
-                      "on-tertiary-fixed": "#131b2e",
-                      "primary": "#8ed5ff",
-                      "on-surface-variant": "#bdc8d1",
-                      "on-tertiary": "#283044",
-                      "inverse-surface": "#d4e4fa",
-                      "error": "#ffb4ab",
-                      "surface-container": "#122131",
-                      "on-secondary-fixed": "#111c2d",
-                      "on-secondary-container": "#aeb9d0"
-              },
-              "borderRadius": {
-                      "DEFAULT": "0.125rem",
-                      "lg": "0.25rem",
-                      "xl": "0.5rem",
-                      "full": "0.75rem"
-              },
-              "spacing": {
-                      "gutter": "16px",
-                      "unit": "4px",
-                      "container-margin": "24px",
-                      "panel-padding": "20px"
-              },
-              "fontFamily": {
-                      "headline-md": ["Inter"],
-                      "label-caps": ["Inter"],
-                      "display-lg": ["Inter"],
-                      "body-md": ["Inter"],
-                      "title-sm": ["Inter"],
-                      "body-sm": ["Inter"],
-                      "data-mono": ["JetBrains Mono"]
-              },
-              "fontSize": {
-                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
-                      "label-caps": ["11px", {"lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "700"}],
-                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
-                      "title-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
-                      "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
-                      "data-mono": ["13px", {"lineHeight": "16px", "fontWeight": "500"}]
-              }
-            },
-          },
-        }
-    </script>
+    }
+}
+</script>
 </head>
-<body class="bg-background">
-<!-- TopNavBar -->
-<header class="fixed top-0 w-full h-16 bg-surface-container/60 backdrop-blur-2xl border-b border-white/10 shadow-sm z-50 flex justify-between items-center px-container-margin">
-<div class="flex items-center gap-6">
-<span class="font-headline-md text-headline-md font-bold text-primary">NOC Command Center</span>
-<div class="hidden md:flex relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-<input class="bg-white/5 border-none rounded-lg pl-10 pr-4 py-1.5 text-body-md w-64 focus:ring-1 focus:ring-primary transition-all" placeholder="Global system search..." type="text"/>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<button class="flex items-center gap-2 px-3 py-1 text-body-sm font-semibold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-all">
-<span class="material-symbols-outlined text-[18px]">verified_user</span>
-                Admin Mode
+<body>
+
+<!-- ===== Header ===== -->
+<header class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm z-50 flex items-center justify-between px-6">
+    <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
+                <span class="material-symbols-outlined text-white text-[20px]">monitoring</span>
+            </div>
+            <span class="text-lg font-bold text-slate-800">NOC Command Center</span>
+        </div>
+        <div class="hidden md:flex relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+            <input id="globalSearch" class="bg-slate-100 border-none rounded-lg pl-9 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-blue-500/30 focus:bg-white placeholder:text-slate-400 transition-all" placeholder="Search devices..." type="text"/>
+        </div>
+    </div>
+    <div class="flex items-center gap-3">
+        <button id="btnAdminMode" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
+            <span class="material-symbols-outlined text-[16px]">verified_user</span>
+            <span id="adminModeLabel">Admin Mode</span>
+        </button>
+        <div class="relative">
+            <button id="btnNotifications" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors relative">
+                <span class="material-symbols-outlined text-[22px]">notifications</span>
+                <span id="notifBadge" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-<div class="flex gap-2">
-<button class="p-2 text-on-surface-variant hover:bg-white/5 rounded-full transition-colors active:scale-95">
-<span class="material-symbols-outlined">notifications</span>
-</button>
-<button class="p-2 text-on-surface-variant hover:bg-white/5 rounded-full transition-colors active:scale-95">
-<span class="material-symbols-outlined">settings</span>
-</button>
-<button class="p-2 text-on-surface-variant hover:bg-white/5 rounded-full transition-colors active:scale-95">
-<span class="material-symbols-outlined">help</span>
-</button>
-</div>
-<img alt="Administrator Avatar" class="w-8 h-8 rounded-full border border-white/20 object-cover" data-alt="A professional close-up portrait of a technology administrator in a dimly lit, high-tech control center environment. The person has a focused and serious expression, wearing professional attire. The background is softly blurred, showing glowing blue and amber server racks and terminal screens, reflecting a modern Glassmorphism aesthetic with deep blues and crisp highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfxtxXZ3WaPpJC1O2vOxgLve76Wbx3wh7m1_EK1PkqW2vZVoev1lGRz2HC1Ff0lVi0eE_7gSRDFuCDlFavgNZKXQ3WIfYUnxdl3b2PZXKJy8QCyY1jXNdXUPoXK3bKT--bw2VlFrS6c8e1UFT12jEhng0a1Pt7ecsb50EmsTVuL9cZJ0AT60wvMn4nY-QLxcMzuzLSXUN8Qa49YLmUjjsMfSBmtvLvW0KdKSPl25fx1O-ppRiT95hD9zj4GUTQCZ2UTznuRGe2ycY"/>
-</div>
+            <div id="notifDropdown" class="notif-dropdown">
+                <div class="px-4 py-3 border-b border-slate-100">
+                    <p class="text-sm font-semibold text-slate-700">Notifications</p>
+                </div>
+                <div id="notifList" class="p-2">
+                    <div class="px-3 py-4 text-center text-slate-400 text-sm">No recent events.</div>
+                </div>
+            </div>
+        </div>
+        <button id="btnSettings" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+            <span class="material-symbols-outlined text-[22px]">settings</span>
+        </button>
+        <button id="btnHelp" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+            <span class="material-symbols-outlined text-[22px]">help</span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold ml-1">AD</div>
+    </div>
 </header>
-<!-- SideNavBar -->
-<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-[240px] bg-surface-dim/40 backdrop-blur-xl border-r border-white/10 flex flex-col py-panel-padding gap-gutter z-40">
-<div class="px-6 mb-4">
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded bg-primary/20 flex items-center justify-center border border-primary/30">
-<span class="material-symbols-outlined text-primary">lan</span>
-</div>
-<div>
-<h3 class="text-body-md font-bold text-on-surface">Operations</h3>
-<p class="text-body-sm text-on-surface-variant">Local Network</p>
-</div>
-</div>
-</div>
-<nav class="flex-1 flex flex-col px-3">
-<a class="flex items-center gap-3 px-4 py-3 text-primary bg-primary-container/20 border-l-4 border-primary font-label-caps text-label-caps hover:text-primary transition-all duration-200" href="#">
-<span class="material-symbols-outlined">dashboard</span>
-                DASHBOARD
-            </a>
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps hover:text-primary hover:bg-white/5 transition-all duration-200" href="#">
-<span class="material-symbols-outlined">hub</span>
-                TOPOLOGY
-            </a>
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps hover:text-primary hover:bg-white/5 transition-all duration-200" href="#">
-<span class="material-symbols-outlined">monitoring</span>
-                MONITORING
-            </a>
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps hover:text-primary hover:bg-white/5 transition-all duration-200" href="#">
-<span class="material-symbols-outlined">terminal</span>
-                LOGS
-            </a>
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps hover:text-primary hover:bg-white/5 transition-all duration-200" href="#">
-<span class="material-symbols-outlined">shield</span>
-                SECURITY
-            </a>
-</nav>
-<div class="px-3 border-t border-white/5 pt-4">
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps hover:text-primary hover:bg-white/5 transition-all" href="#">
-<span class="material-symbols-outlined">contact_support</span>
-                SUPPORT
-            </a>
-<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps hover:text-primary hover:bg-white/5 transition-all" href="#">
-<span class="material-symbols-outlined">logout</span>
-                LOGOUT
-            </a>
-</div>
+
+<!-- ===== Sidebar ===== -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-[220px] bg-white border-r border-slate-200 flex flex-col z-40 shadow-sm">
+    <div class="px-5 py-5 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100">
+                <span class="material-symbols-outlined text-blue-600 text-[18px]">lan</span>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-slate-700">Operations</p>
+                <p class="text-xs text-slate-400">Local Network</p>
+            </div>
+        </div>
+    </div>
+    <nav class="flex-1 flex flex-col px-2 py-3 gap-0.5" id="sidebarNav">
+        <a class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-view="dashboard" href="#">
+            <span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
+        </a>
+        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="topology" href="#">
+            <span class="material-symbols-outlined text-[20px]">hub</span> Topology
+        </a>
+        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="monitoring" href="#">
+            <span class="material-symbols-outlined text-[20px]">monitoring</span> Monitoring
+        </a>
+        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="logs" href="#">
+            <span class="material-symbols-outlined text-[20px]">terminal</span> Logs
+        </a>
+        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="security" href="#">
+            <span class="material-symbols-outlined text-[20px]">shield</span> Security
+        </a>
+    </nav>
+    <div class="px-2 py-3 border-t border-slate-100">
+        <a id="btnSupport" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[20px]">contact_support</span> Support
+        </a>
+        <a id="btnLogout" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[20px]">logout</span> Logout
+        </a>
+    </div>
 </aside>
-<!-- Main Content Area -->
-<main class="ml-[240px] mt-16 p-container-margin relative min-h-screen">
-<!-- Stat Cards Section -->
-<div class="grid grid-cols-1 md:grid-cols-5 gap-gutter mb-gutter">
-<!-- Total Devices -->
-<div class="glass-panel p-panel-padding rounded-xl">
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-2">TOTAL DEVICES</p>
-<div class="flex items-end gap-2">
-<span class="text-display-lg font-display-lg text-on-surface" id="totalDevices">0</span>
-<span class="text-body-sm text-on-surface-variant mb-1">units</span>
-</div>
-</div>
-<!-- Online -->
-<div class="glass-panel p-panel-padding rounded-xl">
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-2">ONLINE</p>
-<div class="flex items-center gap-3">
-<span class="text-display-lg font-display-lg text-[#10b981]" id="onlineCount">0</span>
-<div class="status-pulse w-3 h-3 bg-[#10b981] rounded-full after:bg-[#10b981]"></div>
-</div>
-</div>
-<!-- Offline -->
-<div class="glass-panel p-panel-padding rounded-xl">
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-2">OFFLINE</p>
-<div class="flex items-center gap-3">
-<span class="text-display-lg font-display-lg text-[#f43f5e]" id="offlineCount">0</span>
-<div class="w-3 h-3 bg-[#f43f5e] rounded-full"></div>
-</div>
-</div>
-<!-- CPU Usage -->
-<div class="glass-panel p-panel-padding rounded-xl">
-<div class="flex justify-between items-start mb-2">
-<p class="text-label-caps font-label-caps text-on-surface-variant">AVG CPU</p>
-<span class="text-data-mono font-data-mono text-primary" id="avgCpuLabel">0%</span>
-</div>
-<div class="w-full bg-white/10 h-1.5 rounded-full mt-4 overflow-hidden">
-<div class="bg-primary h-full transition-all duration-1000" id="avgCpuBar" style="width: 0%"></div>
-</div>
-</div>
-<!-- RAM Usage -->
-<div class="glass-panel p-panel-padding rounded-xl">
-<div class="flex justify-between items-start mb-2">
-<p class="text-label-caps font-label-caps text-on-surface-variant">AVG RAM</p>
-<span class="text-data-mono font-data-mono text-[#fbbf24]" id="avgRamLabel">0%</span>
-</div>
-<div class="w-full bg-white/10 h-1.5 rounded-full mt-4 overflow-hidden">
-<div class="bg-[#fbbf24] h-full transition-all duration-1000" id="avgRamBar" style="width: 0%"></div>
-</div>
-</div>
-</div>
-<!-- Center Section: Device Inventory -->
-<div class="glass-panel rounded-xl overflow-hidden mb-gutter">
-<div class="p-panel-padding flex justify-between items-center border-b border-white/5">
-<h2 class="text-title-sm font-title-sm text-on-surface uppercase tracking-wider">Device Inventory</h2>
-<div class="flex gap-2">
-<button class="px-4 py-1.5 bg-white/5 hover:bg-white/10 text-body-sm font-semibold rounded transition-colors flex items-center gap-2">
-<span class="material-symbols-outlined text-[18px]">filter_list</span> Filter
+
+<!-- ===== Main Content ===== -->
+<main class="ml-[220px] mt-16 p-6 min-h-screen">
+
+    <!-- View: Dashboard -->
+    <div id="view-dashboard" class="view-container active">
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-5">
+            <div class="glass-panel rounded-xl p-5">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Devices</p>
+                <div class="flex items-end gap-2">
+                    <span class="text-3xl font-bold text-slate-800" id="totalDevices">0</span>
+                    <span class="text-sm text-slate-400 mb-1">units</span>
+                </div>
+            </div>
+            <div class="glass-panel rounded-xl p-5">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Online</p>
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl font-bold text-emerald-600" id="onlineCount">0</span>
+                    <div class="status-pulse w-3 h-3 bg-emerald-500 rounded-full relative"></div>
+                </div>
+            </div>
+            <div class="glass-panel rounded-xl p-5">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Offline</p>
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl font-bold text-red-500" id="offlineCount">0</span>
+                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                </div>
+            </div>
+            <div class="glass-panel rounded-xl p-5">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg CPU</p>
+                    <span class="font-mono text-sm font-semibold text-blue-600" id="avgCpuLabel">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+                    <div class="bg-blue-500 h-full transition-all duration-1000 rounded-full" id="avgCpuBar" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="glass-panel rounded-xl p-5">
+                <div class="flex justify-between items-start mb-2">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg RAM</p>
+                    <span class="font-mono text-sm font-semibold text-amber-600" id="avgRamLabel">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+                    <div class="bg-amber-500 h-full transition-all duration-1000 rounded-full" id="avgRamBar" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Inventory -->
+        <div class="glass-panel rounded-xl overflow-hidden mb-5">
+            <div class="px-5 py-4 flex flex-wrap justify-between items-center gap-3 border-b border-slate-100">
+                <h2 class="text-base font-bold text-slate-700">Device Inventory</h2>
+                <div class="flex gap-2">
+                    <div class="relative">
+                        <button id="btnFilter" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-600 rounded-lg transition-colors flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[16px]">filter_list</span> Filter
+                            <span id="filterBadge" class="hidden ml-0.5 w-2 h-2 bg-blue-500 rounded-full"></span>
+                        </button>
+                        <div id="filterDropdown" class="filter-dropdown">
+                            <div class="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</div>
+                            <button class="filter-option w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded" data-filter="all">All Devices</button>
+                            <button class="filter-option w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded" data-filter="online">Online Only</button>
+                            <button class="filter-option w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded" data-filter="offline">Offline Only</button>
+                        </div>
+                    </div>
+                    <button id="btnExport" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-600 rounded-lg transition-colors flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px]">download</span> Export
                     </button>
-<button class="px-4 py-1.5 bg-white/5 hover:bg-white/10 text-body-sm font-semibold rounded transition-colors flex items-center gap-2">
-<span class="material-symbols-outlined text-[18px]">download</span> Export
-                    </button>
-</div>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="bg-white/5">
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">DEVICE NAME</th>
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">USERNAME</th>
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">IP ADDRESS</th>
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">OS</th>
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">STATUS</th>
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">RESOURCES (C/R)</th>
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">LAST HEARTBEAT</th>
-<th class="px-6 py-4 text-label-caps font-label-caps text-on-surface-variant">ACTIONS</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-white/5" id="deviceTableBody">
-</tbody>
-</table>
-</div>
-</div>
-<!-- Slide-over Panel (Active/Visible) -->
-<div class="fixed right-0 top-16 h-[calc(100vh-64px)] w-[480px] bg-surface-container-high/90 backdrop-blur-3xl border-l border-white/10 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col" id="sidePanel">
-<!-- Panel Header -->
-<div class="p-panel-padding border-b border-white/5 flex justify-between items-center bg-white/5">
-<div class="flex items-center gap-4">
-<div class="p-3 bg-primary/20 rounded-lg text-primary">
-<span class="material-symbols-outlined">desktop_windows</span>
-</div>
-<div>
-<h2 class="text-headline-md font-headline-md text-on-surface" id="panelDeviceName">—</h2>
-<div class="flex items-center gap-2">
-<span class="w-2 h-2 rounded-full bg-[#10b981]" id="panelStatusDot"></span>
-<span class="text-body-sm text-on-surface-variant uppercase tracking-widest font-bold" id="panelSessionUser">Select a device</span>
-</div>
-</div>
-</div>
-<button class="p-2 hover:bg-white/10 rounded-full transition-colors" id="panelCloseBtn">
-<span class="material-symbols-outlined">close</span>
-</button>
-</div>
-<!-- Panel Scroll Content -->
-<div class="flex-1 overflow-y-auto custom-scrollbar p-gutter space-y-gutter">
-<!-- Resource Gauges -->
-<div class="grid grid-cols-3 gap-3">
-<div class="glass-panel p-3 rounded-lg text-center">
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-2">CPU</p>
-<div class="relative inline-flex items-center justify-center p-4">
-<svg class="w-16 h-16 transform -rotate-90">
-<circle class="text-white/10" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"></circle>
-<circle class="text-primary" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelCpuCircle"></circle>
-</svg>
-<span class="absolute text-data-mono font-data-mono text-body-sm" id="panelCpuValue">0%</span>
-</div>
-</div>
-<div class="glass-panel p-3 rounded-lg text-center">
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-2">RAM</p>
-<div class="relative inline-flex items-center justify-center p-4">
-<svg class="w-16 h-16 transform -rotate-90">
-<circle class="text-white/10" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"></circle>
-<circle class="text-[#fbbf24]" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelRamCircle"></circle>
-</svg>
-<span class="absolute text-data-mono font-data-mono text-body-sm" id="panelRamValue">0%</span>
-</div>
-</div>
-<div class="glass-panel p-3 rounded-lg text-center">
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-2">DISK</p>
-<div class="relative inline-flex items-center justify-center p-4">
-<svg class="w-16 h-16 transform -rotate-90">
-<circle class="text-white/10" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"></circle>
-<circle class="text-[#10b981]" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelDiskCircle"></circle>
-</svg>
-<span class="absolute text-data-mono font-data-mono text-body-sm" id="panelDiskValue">0%</span>
-</div>
-</div>
-</div>
-<!-- Hardware Specs & Info -->
-<div class="grid grid-cols-2 gap-4">
-<div class="space-y-4">
-<div>
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-1">HARDWARE SPECS</p>
-<p class="text-body-sm font-semibold text-on-surface" id="panelCpuModel">—</p>
-<p class="text-body-sm text-on-surface-variant" id="panelRamTotal">—</p>
-</div>
-<div>
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-1">OS INFO</p>
-<p class="text-body-sm font-semibold text-on-surface" id="panelOsName">—</p>
-<p class="text-body-sm text-on-surface-variant" id="panelOsBuild">—</p>
-</div>
-</div>
-<div class="space-y-4">
-<div>
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-1">NETWORK CONFIG</p>
-<p class="text-body-sm font-semibold text-on-surface" id="panelIpAddress">—</p>
-<p class="text-body-sm text-on-surface-variant" id="panelMacAddress">—</p>
-</div>
-<div>
-<p class="text-label-caps font-label-caps text-on-surface-variant mb-1">LAST SEEN</p>
-<p class="text-body-sm font-semibold text-on-surface" id="panelLastSeen">—</p>
-<p class="text-body-sm text-on-surface-variant" id="panelStatusText">—</p>
-</div>
-</div>
-</div>
-<!-- Running Processes -->
-<div class="glass-panel rounded-xl p-4 overflow-hidden">
-<div class="flex justify-between items-center mb-4">
-<h4 class="text-label-caps font-label-caps text-on-surface-variant">RUNNING PROCESSES</h4>
-<div class="relative">
-<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px]">search</span>
-<input class="bg-white/5 border border-white/10 rounded px-8 py-1 text-[11px] focus:ring-0 w-32" placeholder="Filter process..." type="text" id="processSearchInput"/>
-</div>
-</div>
-<div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar" id="panelProcessList">
-<div class="p-4 text-center text-on-surface-variant text-body-sm">Select a device to see running processes.</div>
-</div>
-</div>
-</div>
-<!-- Remote Actions Footer -->
-<div class="p-panel-padding bg-surface-container-highest border-t border-white/10 grid grid-cols-3 gap-3">
-<button class="flex flex-col items-center justify-center gap-1 py-3 bg-white/5 hover:bg-white/10 rounded-lg text-on-surface-variant border border-white/5 transition-all" id="btnRestart">
-<span class="material-symbols-outlined text-primary">restart_alt</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Restart</span>
-</button>
-<button class="flex flex-col items-center justify-center gap-1 py-3 bg-white/5 hover:bg-white/10 rounded-lg text-on-surface-variant border border-white/5 transition-all" id="btnShutdown">
-<span class="material-symbols-outlined text-[#f43f5e]">power_settings_new</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Shutdown</span>
-</button>
-<button class="flex flex-col items-center justify-center gap-1 py-3 bg-white/5 hover:bg-white/10 rounded-lg text-on-surface-variant border border-white/5 transition-all" id="btnRefresh">
-<span class="material-symbols-outlined text-[#10b981]">refresh</span>
-<span class="text-[10px] font-bold uppercase tracking-tighter">Refresh</span>
-</button>
-</div>
-</div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50">
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Device Name</th>
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Username</th>
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">IP Address</th>
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">OS</th>
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Resources (C/R)</th>
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Last Heartbeat</th>
+                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider w-10">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100" id="deviceTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Topology -->
+    <div id="view-topology" class="view-container">
+        <div class="glass-panel rounded-xl p-10 text-center">
+            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">hub</span>
+            <h2 class="text-xl font-bold text-slate-600 mb-2">Topology View</h2>
+            <p class="text-sm text-slate-400">Network topology visualization will be available in the next update.</p>
+        </div>
+    </div>
+
+    <!-- View: Monitoring -->
+    <div id="view-monitoring" class="view-container">
+        <div class="glass-panel rounded-xl p-10 text-center">
+            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">monitoring</span>
+            <h2 class="text-xl font-bold text-slate-600 mb-2">Advanced Monitoring</h2>
+            <p class="text-sm text-slate-400">Detailed monitoring charts and analytics coming soon.</p>
+        </div>
+    </div>
+
+    <!-- View: Logs -->
+    <div id="view-logs" class="view-container">
+        <div class="glass-panel rounded-xl p-10 text-center">
+            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">terminal</span>
+            <h2 class="text-xl font-bold text-slate-600 mb-2">System Logs</h2>
+            <p class="text-sm text-slate-400">Centralized log viewer will be integrated in a future sprint.</p>
+        </div>
+    </div>
+
+    <!-- View: Security -->
+    <div id="view-security" class="view-container">
+        <div class="glass-panel rounded-xl p-10 text-center">
+            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">shield</span>
+            <h2 class="text-xl font-bold text-slate-600 mb-2">Security Dashboard</h2>
+            <p class="text-sm text-slate-400">Security monitoring and threat detection coming in a future release.</p>
+        </div>
+    </div>
+
+    <!-- ===== Side Panel (Slide-over) ===== -->
+    <div class="fixed right-0 top-16 h-[calc(100vh-64px)] w-[460px] bg-white shadow-2xl border-l border-slate-200 z-50 transform translate-x-full transition-transform duration-300 flex flex-col" id="sidePanel">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-blue-50 rounded-lg text-blue-600">
+                    <span class="material-symbols-outlined text-[22px]">desktop_windows</span>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-700" id="panelDeviceName">—</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500" id="panelStatusDot"></span>
+                        <span class="text-xs text-slate-400 font-medium" id="panelSessionUser">Select a device</span>
+                    </div>
+                </div>
+            </div>
+            <button id="panelCloseBtn" class="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
+            <div class="grid grid-cols-3 gap-3">
+                <div class="glass-panel p-4 rounded-xl text-center">
+                    <p class="text-xs font-semibold text-slate-400 mb-2">CPU</p>
+                    <div class="relative inline-flex items-center justify-center">
+                        <svg class="w-16 h-16 transform -rotate-90">
+                            <circle class="text-slate-100" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"/>
+                            <circle class="text-blue-500" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelCpuCircle"/>
+                        </svg>
+                        <span class="absolute text-xs font-mono font-bold text-slate-600" id="panelCpuValue">0%</span>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl text-center">
+                    <p class="text-xs font-semibold text-slate-400 mb-2">RAM</p>
+                    <div class="relative inline-flex items-center justify-center">
+                        <svg class="w-16 h-16 transform -rotate-90">
+                            <circle class="text-slate-100" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"/>
+                            <circle class="text-amber-500" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelRamCircle"/>
+                        </svg>
+                        <span class="absolute text-xs font-mono font-bold text-slate-600" id="panelRamValue">0%</span>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl text-center">
+                    <p class="text-xs font-semibold text-slate-400 mb-2">DISK</p>
+                    <div class="relative inline-flex items-center justify-center">
+                        <svg class="w-16 h-16 transform -rotate-90">
+                            <circle class="text-slate-100" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"/>
+                            <circle class="text-emerald-500" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelDiskCircle"/>
+                        </svg>
+                        <span class="absolute text-xs font-mono font-bold text-slate-600" id="panelDiskValue">0%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Hardware Specs</p>
+                        <p class="text-sm font-semibold text-slate-700" id="panelCpuModel">—</p>
+                        <p class="text-sm text-slate-500" id="panelRamTotal">—</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">OS Info</p>
+                        <p class="text-sm font-semibold text-slate-700" id="panelOsName">—</p>
+                        <p class="text-sm text-slate-500" id="panelOsBuild">—</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Network</p>
+                        <p class="text-sm font-semibold text-slate-700" id="panelIpAddress">—</p>
+                        <p class="text-sm text-slate-500" id="panelMacAddress">—</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Last Seen</p>
+                        <p class="text-sm font-semibold text-slate-700" id="panelLastSeen">—</p>
+                        <p class="text-sm text-slate-500" id="panelStatusText">—</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-panel rounded-xl p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Running Processes</h4>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[14px]">search</span>
+                        <input id="processSearchInput" class="bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-3 py-1 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-32" placeholder="Filter..." type="text"/>
+                    </div>
+                </div>
+                <div class="space-y-1 max-h-60 overflow-y-auto custom-scrollbar" id="panelProcessList">
+                    <div class="p-4 text-center text-slate-400 text-sm">Select a device to see running processes.</div>
+                </div>
+            </div>
+        </div>
+        <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 grid grid-cols-3 gap-3">
+            <button id="btnRestart" class="flex flex-col items-center justify-center gap-1 py-2.5 bg-white hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-200 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[20px]">restart_alt</span>
+                <span class="text-[9px] font-bold uppercase tracking-wider">Restart</span>
+            </button>
+            <button id="btnShutdown" class="flex flex-col items-center justify-center gap-1 py-2.5 bg-white hover:bg-red-50 rounded-lg text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[20px]">power_settings_new</span>
+                <span class="text-[9px] font-bold uppercase tracking-wider">Shutdown</span>
+            </button>
+            <button id="btnRefresh" class="flex flex-col items-center justify-center gap-1 py-2.5 bg-white hover:bg-emerald-50 rounded-lg text-slate-500 hover:text-emerald-600 border border-slate-200 hover:border-emerald-200 transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-[20px]">refresh</span>
+                <span class="text-[9px] font-bold uppercase tracking-wider">Refresh</span>
+            </button>
+        </div>
+    </div>
 </main>
+
+<!-- ===== Settings Modal ===== -->
+<div id="settingsModal" class="modal-backdrop">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-5">
+            <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-600">settings</span> Settings
+            </h2>
+            <button class="modal-close-btn p-1 hover:bg-slate-100 rounded-full text-slate-400">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between py-2">
+                <div>
+                    <p class="text-sm font-medium text-slate-700">Auto-refresh</p>
+                    <p class="text-xs text-slate-400">Automatically refresh device data</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            <div class="flex items-center justify-between py-2">
+                <div>
+                    <p class="text-sm font-medium text-slate-700">Sound alerts</p>
+                    <p class="text-xs text-slate-400">Play sound on device events</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            <div class="flex items-center justify-between py-2">
+                <div>
+                    <p class="text-sm font-medium text-slate-700">Show offline devices</p>
+                    <p class="text-xs text-slate-400">Display offline devices in inventory</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-100 text-right">
+            <button class="modal-close-btn px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Help Modal ===== -->
+<div id="helpModal" class="modal-backdrop">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-5">
+            <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-600">help</span> Help & About
+            </h2>
+            <button class="modal-close-btn p-1 hover:bg-slate-100 rounded-full text-slate-400">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="space-y-4 text-sm text-slate-600">
+            <p><strong class="text-slate-700">HonMonit</strong> — Real-time network device monitoring system.</p>
+            <p>This NOC dashboard allows you to monitor remote devices, view resource usage, manage processes, and send remote commands.</p>
+            <div class="bg-slate-50 rounded-lg p-4 space-y-2">
+                <p class="font-semibold text-slate-700">Quick Tips:</p>
+                <ul class="list-disc list-inside space-y-1 text-slate-500">
+                    <li>Click a device row to open the detail panel</li>
+                    <li>Use the search bar to filter devices</li>
+                    <li>Toggle Admin Mode for advanced controls</li>
+                    <li>Use the Filter button to sort by status</li>
+                </ul>
+            </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-100 text-right">
+            <button class="modal-close-btn px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Support Modal ===== -->
+<div id="supportModal" class="modal-backdrop">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-5">
+            <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-600">contact_support</span> Support
+            </h2>
+            <button class="modal-close-btn p-1 hover:bg-slate-100 rounded-full text-slate-400">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="space-y-4 text-sm text-slate-600">
+            <p>Need help with HonMonit? Contact the support team:</p>
+            <div class="bg-slate-50 rounded-lg p-4 space-y-2">
+                <p><span class="font-semibold text-slate-700">Email:</span> support@honmonit.local</p>
+                <p><span class="font-semibold text-slate-700">Docs:</span> docs.honmonit.local</p>
+                <p><span class="font-semibold text-slate-700">Version:</span> 1.0</p>
+            </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-100 text-right">
+            <button class="modal-close-btn px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Row Actions Menu ===== -->
+<div id="rowActionsMenu" class="row-actions-menu">
+    <button class="row-action-btn w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2" data-action="details">
+        <span class="material-symbols-outlined text-[16px]">info</span> Details
+    </button>
+    <button class="row-action-btn w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2 text-blue-600 admin-only" data-action="restart">
+        <span class="material-symbols-outlined text-[16px]">restart_alt</span> Restart
+    </button>
+    <button class="row-action-btn w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2 text-red-500 admin-only" data-action="shutdown">
+        <span class="material-symbols-outlined text-[16px]">power_settings_new</span> Shutdown
+    </button>
+</div>
+
 <script src="static/js/app.js"></script>
-</body></html>
+</body>
+</html>

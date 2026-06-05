@@ -153,6 +153,36 @@ async def main():
                                 "data": {"processes": processes},
                             }))
 
+                        elif cmd == "restart":
+                            print(f"[Agent] Restarting system...")
+                            await ws.send(json.dumps({
+                                "type": "command_result",
+                                "command": "restart",
+                                "id": data.get("id"),
+                                "success": True,
+                                "data": {"message": "System restarting..."},
+                            }))
+                            await asyncio.sleep(1)
+                            if platform.system() == "Windows":
+                                os.system("shutdown /r /t 10")
+                            else:
+                                os.system("shutdown -r +1")
+
+                        elif cmd == "shutdown":
+                            print(f"[Agent] Shutting down system...")
+                            await ws.send(json.dumps({
+                                "type": "command_result",
+                                "command": "shutdown",
+                                "id": data.get("id"),
+                                "success": True,
+                                "data": {"message": "System shutting down..."},
+                            }))
+                            await asyncio.sleep(1)
+                            if platform.system() == "Windows":
+                                os.system("shutdown /s /t 10")
+                            else:
+                                os.system("shutdown -h +1")
+
                         elif cmd == "kill_process":
                             pid = data.get("params", {}).get("pid")
                             if not isinstance(pid, int):

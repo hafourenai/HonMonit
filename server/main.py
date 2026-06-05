@@ -89,6 +89,54 @@ async def get_device_processes(device_id: str):
         return {"success": False, "error": "Failed to retrieve process list"}
 
 
+@app.post("/api/devices/{device_id}/restart")
+async def restart_device(device_id: str):
+    device = store.get(device_id)
+    if not device:
+        return {"success": False, "error": "Device not found"}
+    if device["status"] != "online":
+        return {"success": False, "error": "Device is offline"}
+
+    future = await manager.send_command(device_id, "restart")
+    if not future:
+        return {"success": False, "error": "Device is offline"}
+
+    try:
+        result = await asyncio.wait_for(future, timeout=10.0)
+        resp = {"success": result.get("success", False)}
+        if result.get("error"):
+            resp["error"] = result["error"]
+        if result.get("data"):
+            resp["data"] = result["data"]
+        return resp
+    except asyncio.TimeoutError:
+        return {"success": False, "error": "Command timed out"}
+
+
+@app.post("/api/devices/{device_id}/shutdown")
+async def shutdown_device(device_id: str):
+    device = store.get(device_id)
+    if not device:
+        return {"success": False, "error": "Device not found"}
+    if device["status"] != "online":
+        return {"success": False, "error": "Device is offline"}
+
+    future = await manager.send_command(device_id, "shutdown")
+    if not future:
+        return {"success": False, "error": "Device is offline"}
+
+    try:
+        result = await asyncio.wait_for(future, timeout=10.0)
+        resp = {"success": result.get("success", False)}
+        if result.get("error"):
+            resp["error"] = result["error"]
+        if result.get("data"):
+            resp["data"] = result["data"]
+        return resp
+    except asyncio.TimeoutError:
+        return {"success": False, "error": "Command timed out"}
+
+
 @app.post("/api/devices/{device_id}/kill")
 async def kill_device_process(device_id: str, request: Request):
     device = store.get(device_id)
