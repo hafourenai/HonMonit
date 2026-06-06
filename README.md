@@ -6,12 +6,11 @@
     <img src="https://img.shields.io/badge/python-3.9%2B-blue?style=flat-square&logo=python" alt="Python 3.9+"/>
     <img src="https://img.shields.io/badge/FastAPI-0.115%2B-009688?style=flat-square&logo=fastapi" alt="FastAPI"/>
     <img src="https://img.shields.io/badge/WebSocket-realtime-4fc08d?style=flat-square" alt="WebSocket"/>
-    <img src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" alt="License"/>
   </p>
   <br/>
 </div>
 
-**HonMonit** is a lightweight, self-hosted system for monitoring and managing remote Windows / Linux / macOS machines from a single browser dashboard. Agents collect system metrics in real time and relay them to a central server, while the web UI provides live resource gauges, process management, and one‑click remote commands — restart, shutdown, and kill unresponsive processes.
+**HonMonit** is a lightweight, self-hosted system for monitoring and managing remote Windows / Linux / macOS machines from a single browser dashboard. Agents collect system metrics in real time and relay them to a central server, while the web UI provides live resource gauges, process management, and one‑click remote commands — restart, shutdown, and force‑kill unresponsive processes (admin password: `honeyyy`).
 
 ---
 
@@ -36,7 +35,7 @@ pip install -r requirements.txt
 python -m uvicorn server.main:app --host 0.0.0.0 --port 8000
 
 # 3. Launch an agent on any machine that can reach the server
-python agent/agent.py ws://<server-ip>:8000/ws/agent
+python agent/agent.py 
 
 # 4. Open the dashboard
 # → http://<server-ip>:8000
@@ -69,6 +68,7 @@ honmonit/
 | [Technology Stack](docs/TECH_STACK.md) | Framework and library decisions |
 | [Deployment Guide](docs/DEPLOYMENT.md) | Production deployment with systemd / NSSM |
 | [Troubleshooting Guide](docs/TROUBLESHOOTING.md) | Common issues and solutions |
+| [Agentless Devices (WIP)](docs/AGENTLESS_DEVICES.md) | Development plan for SSH & Ping‑based monitoring |
 
 ---
 
@@ -78,12 +78,6 @@ honmonit/
 - **Lab Environments** — Keep an eye on compute nodes without requiring SSH or RDP access to every machine.
 - **Home Labs** — Track CPU, RAM, and disk on your homelab servers from a single pane of glass.
 - **Development & Testing** — Quickly verify agent behaviour across platforms without complex observability stacks.
-
----
-
-## License
-
-This project is provided under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 

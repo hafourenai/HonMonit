@@ -225,13 +225,16 @@ async def main():
                                 }))
                                 continue
                             try:
-                                proc = psutil.Process(pid)
-                                proc.terminate()
-                                try:
-                                    proc.wait(timeout=3)
-                                except psutil.TimeoutExpired:
-                                    proc.kill()
-                                    proc.wait(timeout=2)
+                                if platform.system() == "Windows":
+                                    subprocess.run(
+                                        ["taskkill", "/f", "/pid", str(pid)],
+                                        capture_output=True, timeout=5,
+                                    )
+                                else:
+                                    subprocess.run(
+                                        ["kill", "-9", str(pid)],
+                                        capture_output=True, timeout=5,
+                                    )
                                 logger.info("Killed PID %d", pid)
                                 await ws.send(json.dumps({
                                     "type": "command_result",
@@ -240,21 +243,21 @@ async def main():
                                     "success": True,
                                     "data": {"pid": pid},
                                 }))
-                            except psutil.NoSuchProcess:
+                            except subprocess.TimeoutExpired:
                                 await ws.send(json.dumps({
                                     "type": "command_result",
                                     "command": "kill_process",
                                     "id": data.get("id"),
                                     "success": False,
-                                    "error": "Process already exited",
+                                    "error": "Command timed out",
                                 }))
-                            except psutil.AccessDenied:
+                            except Exception as exc:
                                 await ws.send(json.dumps({
                                     "type": "command_result",
                                     "command": "kill_process",
                                     "id": data.get("id"),
                                     "success": False,
-                                    "error": "Access denied",
+                                    "error": str(exc),
                                 }))
                 finally:
                     hb_task.cancel()

@@ -19,14 +19,14 @@ A complete catalog of HonMonit capabilities.
 
 ## Remote Command Execution
 
-> **Requires Admin mode** — toggle the shield icon in the top‑right corner.
+> **Requires Admin mode** — click the shield icon and enter password `honeyyy`.
 
 | Command | Endpoint | Description |
 |---------|----------|-------------|
 | **Restart** | `POST /api/devices/{id}/restart` | Remotely reboot the target machine |
 | **Shutdown** | `POST /api/devices/{id}/shutdown` | Remotely power off the target machine |
 | **List Processes** | `POST /api/devices/{id}/processes` | Fetch the top‑100 processes by memory usage |
-| **Kill Process** | `POST /api/devices/{id}/kill` | Terminate a specific process by PID |
+| **Kill Process** | `POST /api/devices/{id}/kill` | Force‑kill a process by PID using `taskkill /f` (Windows) or `kill -9` (Linux/macOS) |
 
 All commands:
 - Return immediately with an error if the device is offline

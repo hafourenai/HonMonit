@@ -26,8 +26,8 @@ This document walks through setting up the HonMonit server and connecting your f
 ### 1a. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/honmonit.git
-cd honmonit
+git clone https://github.com/hafourenai/HonMonit.git
+cd HonMonit
 ```
 
 ### 1b. Create a virtual environment (recommended)

@@ -44,9 +44,18 @@
     var statOffline = $("offlineCount");
 
     function formatHeartbeat(hb) {
-        if (!hb) return "\u2014";
-        var d = new Date(hb);
-        return d.toLocaleTimeString();
+        if (!hb) return '<span class="hb-status offline">Offline</span>';
+        var now = Date.now();
+        var then = new Date(hb).getTime();
+        var diffSec = Math.floor((now - then) / 1000);
+        var text, cls;
+        if (diffSec < 30)      { text = "Just now";  cls = "online"; }
+        else if (diffSec < 60) { text = diffSec + "s ago"; cls = "online"; }
+        else if (diffSec < 300){ text = Math.floor(diffSec / 60) + "m ago"; cls = "online"; }
+        else if (diffSec < 3600){ text = Math.floor(diffSec / 60) + "m ago"; cls = "warning"; }
+        else if (diffSec < 86400){ text = Math.floor(diffSec / 3600) + "h ago"; cls = "warning"; }
+        else                   { text = Math.floor(diffSec / 86400) + "d ago"; cls = "offline"; }
+        return '<span class="hb-status ' + cls + '"><span class="hb-dot ' + cls + '"></span>' + text + '</span>';
     }
 
     function updateStats() {
@@ -242,36 +251,33 @@
 
         deviceTableBody.innerHTML = list.map(function (d) {
             var selected = d.device_id === selectedDeviceId;
-            var rowClass = selected
-                ? "hover:bg-blue-50 cursor-pointer bg-blue-50/60 transition-colors"
-                : "hover:bg-slate-50 cursor-pointer transition-colors";
+            var rowClass = "cursor-pointer transition-colors" + (selected ? " selected" : "");
 
             var badgeClass = d.status === "online"
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-red-50 text-red-700 border border-red-200";
+                ? "badge-online"
+                : "badge-offline";
 
             var cpuWidth = (d.cpu_usage || 0) + "%";
             var ramWidth = (d.ram_usage || 0) + "%";
 
             return '<tr class="' + rowClass + '" data-device-id="' + d.device_id + '">' +
-                '<td class="px-5 py-3"><div class="flex items-center gap-3">' +
-                '<span class="material-symbols-outlined text-blue-500">laptop_mac</span>' +
-                '<span class="text-sm font-semibold text-slate-700">' + escapeHtml(d.hostname) + "</span></div></td>" +
-                '<td class="px-5 py-3 text-sm text-slate-500">' + escapeHtml(d.username) + "</td>" +
-                '<td class="px-5 py-3 text-sm font-mono text-slate-500">' + escapeHtml(d.ip) + "</td>" +
-                '<td class="px-5 py-3 text-sm text-slate-500">' + escapeHtml(d.os) + "</td>" +
-                '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ' + badgeClass + '">' +
-                (d.status === "online" ? "ONLINE" : "OFFLINE") + "</span></td>" +
-                '<td class="px-5 py-3 w-44"><div class="flex flex-col gap-1">' +
-                '<div class="flex items-center gap-2"><span class="text-[10px] text-slate-400 w-6">CPU</span>' +
-                '<div class="flex-1 h-1.5 bg-slate-100 rounded-full"><div class="h-full bg-blue-500 rounded-full" style="width:' + cpuWidth + '"></div></div>' +
-                '<span class="text-[10px] text-slate-400 w-7 text-right">' + (d.cpu_usage || 0) + "%</span></div>" +
-                '<div class="flex items-center gap-2"><span class="text-[10px] text-slate-400 w-6">RAM</span>' +
-                '<div class="flex-1 h-1.5 bg-slate-100 rounded-full"><div class="h-full bg-amber-500 rounded-full" style="width:' + ramWidth + '"></div></div>' +
-                '<span class="text-[10px] text-slate-400 w-7 text-right">' + (d.ram_usage || 0) + "%</span></div></div></td>" +
-                '<td class="px-5 py-3 text-sm text-slate-400">' + formatHeartbeat(d.last_heartbeat) + "</td>" +
-                '<td class="px-5 py-3"><button class="row-more-btn p-1 hover:bg-slate-100 rounded transition-all text-slate-400 hover:text-slate-600" data-device-id="' + d.device_id + '">' +
-                '<span class="material-symbols-outlined text-[18px]">more_vert</span></button></td></tr>';
+                '<td class="py-3"><div class="device-name-cell">' +
+                '<span class="material-symbols-outlined">laptop_mac</span>' +
+                '<span class="device-name">' + escapeHtml(d.hostname) + "</span></div></td>" +
+                '<td class="py-3 font-mono text-sm">' + escapeHtml(d.ip) + "</td>" +
+                '<td class="py-3 text-sm">' + escapeHtml(d.os) + "</td>" +
+                '<td class="py-3"><span class="badge ' + badgeClass + '">' +
+                (d.status === "online" ? "Online" : "Offline") + "</span></td>" +
+                '<td class="py-3" style="min-width:140px"><div class="flex flex-col gap-1.5">' +
+                '<div class="mini-bar"><span class="mini-bar-label">CPU</span>' +
+                '<div class="mini-bar-track"><div class="mini-bar-fill blue" style="width:' + cpuWidth + '"></div></div>' +
+                '<span class="mini-bar-value">' + (d.cpu_usage || 0) + "%</span></div>" +
+                '<div class="mini-bar"><span class="mini-bar-label">RAM</span>' +
+                '<div class="mini-bar-track"><div class="mini-bar-fill amber" style="width:' + ramWidth + '"></div></div>' +
+                '<span class="mini-bar-value">' + (d.ram_usage || 0) + "%</span></div></div></td>" +
+                '<td class="py-3" style="min-width:110px">' + formatHeartbeat(d.last_heartbeat) + "</td>" +
+                '<td class="py-3" style="width:40px"><button class="row-more-btn" data-device-id="' + d.device_id + '">' +
+                '<span class="material-symbols-outlined">more_vert</span></button></td></tr>';
         }).join("");
 
         Array.from(deviceTableBody.querySelectorAll("tr[data-device-id]")).forEach(function (row) {
@@ -371,6 +377,7 @@
         if (panelDiskValue) panelDiskValue.textContent = disk + "%";
 
         if (sidePanel) sidePanel.classList.remove("translate-x-full");
+        if (panelOverlay) panelOverlay.classList.add("active");
     }
 
     var _wsReconnectAttempt = 0;
@@ -431,12 +438,21 @@
         };
     }
 
+    var panelOverlay = $("sidePanelOverlay");
+
+    function closeSidePanel() {
+        sidePanel.classList.add("translate-x-full");
+        if (panelOverlay) panelOverlay.classList.remove("active");
+        selectedDeviceId = null;
+        renderDeviceTable();
+    }
+
     if (panelCloseBtn && sidePanel) {
-        panelCloseBtn.addEventListener("click", function () {
-            sidePanel.classList.add("translate-x-full");
-            selectedDeviceId = null;
-            renderDeviceTable();
-        });
+        panelCloseBtn.addEventListener("click", closeSidePanel);
+    }
+
+    if (panelOverlay) {
+        panelOverlay.addEventListener("click", closeSidePanel);
     }
 
     if (processSearchInput) {
@@ -467,19 +483,16 @@
     var adminModeLabel = $("adminModeLabel");
     if (btnAdminMode) {
         btnAdminMode.addEventListener("click", function () {
-            isAdminMode = !isAdminMode;
             if (isAdminMode) {
-                btnAdminMode.classList.remove("bg-blue-50", "text-blue-700", "border-blue-200");
-                btnAdminMode.classList.add("bg-blue-600", "text-white", "border-blue-600");
-                if (adminModeLabel) adminModeLabel.textContent = "Admin ON";
-                showNotification("Admin mode enabled", "success");
-            } else {
+                isAdminMode = false;
                 btnAdminMode.classList.add("bg-blue-50", "text-blue-700", "border-blue-200");
                 btnAdminMode.classList.remove("bg-blue-600", "text-white", "border-blue-600");
                 if (adminModeLabel) adminModeLabel.textContent = "Admin Mode";
                 showNotification("Admin mode disabled", "success");
+                hideRowActions();
+                return;
             }
-            hideRowActions();
+            showAdminPasswordModal();
         });
     }
 
@@ -524,7 +537,7 @@
         });
     }
 
-    var navLinks = document.querySelectorAll(".nav-link");
+    var navLinks = document.querySelectorAll(".sidebar-link[data-view]");
     var viewContainers = document.querySelectorAll(".view-container");
 
     navLinks.forEach(function (link) {
@@ -534,11 +547,9 @@
             if (!view) return;
 
             navLinks.forEach(function (l) {
-                l.classList.remove("active", "text-blue-600", "bg-blue-50");
-                l.classList.add("text-slate-500");
+                l.classList.remove("active");
             });
-            this.classList.add("active", "text-blue-600", "bg-blue-50");
-            this.classList.remove("text-slate-500");
+            this.classList.add("active");
 
             viewContainers.forEach(function (vc) {
                 vc.classList.remove("active");
@@ -568,9 +579,11 @@
             }
         });
 
-        var filterOptions = filterDropdown.querySelectorAll(".filter-option");
+        var filterOptions = filterDropdown.querySelectorAll(".dropdown-item");
         filterOptions.forEach(function (opt) {
             opt.addEventListener("click", function () {
+                filterDropdown.querySelectorAll(".dropdown-item").forEach(function (i) { i.classList.remove("active"); });
+                this.classList.add("active");
                 currentFilter = this.dataset.filter;
                 if (filterBadge) {
                     filterBadge.style.display = currentFilter !== "all" ? "block" : "none";
@@ -578,6 +591,38 @@
                 renderDeviceTable();
                 filterDropdown.classList.remove("active");
             });
+        });
+    }
+
+    var sidebarToggle = $("sidebarToggle");
+    var appSidebar = $("appSidebar");
+    if (sidebarToggle && appSidebar) {
+        sidebarToggle.addEventListener("click", function () {
+            appSidebar.classList.toggle("collapsed");
+        });
+    }
+
+    var panelTabs = document.querySelectorAll(".panel-tab");
+    panelTabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+            panelTabs.forEach(function (t) { t.classList.remove("active"); });
+            this.classList.add("active");
+            var tabName = this.dataset.tab;
+            var contents = document.querySelectorAll(".panel-tab-content");
+            contents.forEach(function (c) { c.classList.remove("active"); });
+            var target = $("tab-" + tabName);
+            if (target) target.classList.add("active");
+        });
+    });
+
+    var btnClearAlerts = $("btnClearAlerts");
+    if (btnClearAlerts) {
+        btnClearAlerts.addEventListener("click", function () {
+            var alertsList = $("alertsList");
+            if (alertsList) {
+                alertsList.innerHTML = '<div class="empty-state"><span class="material-symbols-outlined">notifications_off</span><p>No alerts recorded yet.</p></div>';
+                showNotification("All alerts cleared", "success");
+            }
         });
     }
 
@@ -656,12 +701,58 @@
         });
     }
 
-    var btnLogout = $("btnLogout");
-    if (btnLogout) {
-        btnLogout.addEventListener("click", function () {
-            if (confirm("Are you sure you want to logout?")) {
-                showNotification("Logged out successfully", "success");
+    function showAdminPasswordModal() {
+        var modal = $("adminPasswordModal");
+        var input = $("adminPasswordInput");
+        var error = $("adminPwdError");
+        if (!modal || !input) return;
+        input.value = "";
+        error.style.display = "none";
+        modal.classList.add("active");
+        setTimeout(function () { input.focus(); }, 100);
+
+        function cleanup() {
+            modal.classList.remove("active");
+            input.value = "";
+            error.style.display = "none";
+            $("adminPwdSubmit").removeEventListener("click", onSubmit);
+            $("adminPwdCancel").removeEventListener("click", onCancel);
+            $("adminPwdClose").removeEventListener("click", onCancel);
+            input.removeEventListener("keydown", onKeydown);
+        }
+        function onSuccess() {
+            isAdminMode = true;
+            btnAdminMode.classList.remove("bg-blue-50", "text-blue-700", "border-blue-200");
+            btnAdminMode.classList.add("bg-blue-600", "text-white", "border-blue-600");
+            if (adminModeLabel) adminModeLabel.textContent = "Admin ON";
+            showNotification("Admin mode enabled", "success");
+            hideRowActions();
+            cleanup();
+        }
+        function onCancel() {
+            hideRowActions();
+            cleanup();
+        }
+        function onSubmit() {
+            if (input.value === "honeyyy") {
+                onSuccess();
+            } else {
+                error.style.display = "block";
+                input.value = "";
+                input.focus();
             }
+        }
+        function onKeydown(e) {
+            if (e.key === "Enter") onSubmit();
+            if (e.key === "Escape") onCancel();
+        }
+
+        $("adminPwdSubmit").addEventListener("click", onSubmit);
+        $("adminPwdCancel").addEventListener("click", onCancel);
+        $("adminPwdClose").addEventListener("click", onCancel);
+        input.addEventListener("keydown", onKeydown);
+        modal.addEventListener("click", function (e) {
+            if (e.target === modal) onCancel();
         });
     }
 
