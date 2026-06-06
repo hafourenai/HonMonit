@@ -1,23 +1,19 @@
-"""In-memory device store for Sprint 1.
-
-Thread-safe dict that holds registered devices.
-No database — restarting the server clears all data.
-Agents re-register automatically on reconnect.
-"""
-
-import threading
+import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Optional
+
+logger = logging.getLogger("honmonit.device_store")
 
 
 class DeviceStore:
     def __init__(self):
         self._devices: dict[str, dict] = {}
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
 
-    def register(self, device_id: str, info: dict) -> dict:
-        """Store or overwrite a device entry. Returns the stored snapshot."""
-        with self._lock:
+    async def register(self, device_id: str, info: dict) -> dict:
+        async with self._lock:
+            is_new = device_id not in self._devices
             device = {
                 "device_id": device_id,
                 "hostname": info.get("hostname", "Unknown"),
@@ -31,28 +27,32 @@ class DeviceStore:
                 "last_heartbeat": None,
             }
             self._devices[device_id] = device
+            if not is_new:
+                logger.info("Device %s (%s) re-registered", device_id, device["hostname"])
             return dict(device)
 
-    def get(self, device_id: str) -> Optional[dict]:
-        with self._lock:
+    async def get(self, device_id: str) -> Optional[dict]:
+        async with self._lock:
             d = self._devices.get(device_id)
             return dict(d) if d else None
 
-    def get_all(self) -> list:
-        with self._lock:
+    async def get_all(self) -> list:
+        async with self._lock:
             return [dict(d) for d in self._devices.values()]
 
-    def mark_offline(self, device_id: str):
-        """Set a device's status to offline (no removal — row stays visible)."""
-        with self._lock:
+    async def mark_offline(self, device_id: str):
+        async with self._lock:
             if device_id in self._devices:
                 self._devices[device_id]["status"] = "offline"
 
-    def update_heartbeat(
+    async def remove(self, device_id: str):
+        async with self._lock:
+            self._devices.pop(device_id, None)
+
+    async def update_heartbeat(
         self, device_id: str, cpu_usage: float, ram_usage: float, disk_usage: float
     ) -> Optional[dict]:
-        """Update live resource metrics and set status back to online."""
-        with self._lock:
+        async with self._lock:
             if device_id in self._devices:
                 self._devices[device_id]["cpu_usage"] = cpu_usage
                 self._devices[device_id]["ram_usage"] = ram_usage

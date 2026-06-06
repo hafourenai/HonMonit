@@ -3,586 +3,469 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>HonMonit | Device Monitoring</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<title>HonMonit — PC Monitoring &amp; Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0&amp;display=swap" rel="stylesheet"/>
-<style>
-:root {
-    --bg: #f1f5f9;
-    --surface: #ffffff;
-    --surface-hover: #f8fafc;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --primary: #2563eb;
-    --primary-light: #dbeafe;
-    --success: #10b981;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --border: #e2e8f0;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04);
-}
-body {
-    background: var(--bg);
-    color: var(--text-primary);
-    font-family: 'Inter', sans-serif;
-    overflow-x: hidden;
-}
-.glass-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
-}
-.glass-panel:hover {
-    box-shadow: var(--shadow);
-}
-.status-pulse::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-}
-@keyframes pulse {
-    0% { transform: scale(1); opacity: 0.6; }
-    100% { transform: scale(2.5); opacity: 0; }
-}
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 100;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
-}
-.modal-backdrop.active { display: flex; }
-.modal-content {
-    background: var(--surface);
-    border-radius: 12px;
-    box-shadow: var(--shadow-lg);
-    max-width: 480px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--shadow-lg);
-    z-index: 60;
-    min-width: 180px;
-    padding: 4px;
-}
-.dropdown-menu.active { display: block; }
-.notif-dropdown {
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--shadow-lg);
-    z-index: 60;
-    width: 320px;
-    max-height: 360px;
-    overflow-y: auto;
-}
-.notif-dropdown.active { display: block; }
-.filter-dropdown {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 4px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--shadow-lg);
-    z-index: 60;
-    min-width: 160px;
-    padding: 4px;
-}
-.filter-dropdown.active { display: block; }
-.row-actions-menu {
-    display: none;
-    position: fixed;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: var(--shadow-lg);
-    z-index: 70;
-    min-width: 160px;
-    padding: 4px;
-}
-.row-actions-menu.active { display: block; }
-.view-container { display: none; }
-.view-container.active { display: block; }
-</style>
-<script>
-tailwind.config = {
-    theme: {
-        extend: {
-            fontFamily: {
-                'sans': ['Inter', 'system-ui', 'sans-serif'],
-                'mono': ['JetBrains Mono', 'monospace'],
-            }
-        }
-    }
-}
-</script>
+<link href="static/css/style.css" rel="stylesheet"/>
 </head>
 <body>
 
-<!-- ===== Header ===== -->
-<header class="fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm z-50 flex items-center justify-between px-6">
-    <div class="flex items-center gap-6">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center">
-                <span class="material-symbols-outlined text-white text-[20px]">monitoring</span>
-            </div>
-            <span class="text-lg font-bold text-slate-800">NOC Command Center</span>
-        </div>
-        <div class="hidden md:flex relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
-            <input id="globalSearch" class="bg-slate-100 border-none rounded-lg pl-9 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-blue-500/30 focus:bg-white placeholder:text-slate-400 transition-all" placeholder="Search devices..." type="text"/>
-        </div>
+<header class="app-header">
+  <div class="header-left">
+    <div class="brand">
+      <div class="brand-icon">
+        <span class="material-symbols-outlined">monitoring</span>
+      </div>
+      <span class="brand-text">HonMonit</span>
     </div>
-    <div class="flex items-center gap-3">
-        <button id="btnAdminMode" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all">
-            <span class="material-symbols-outlined text-[16px]">verified_user</span>
-            <span id="adminModeLabel">Admin Mode</span>
-        </button>
-        <div class="relative">
-            <button id="btnNotifications" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors relative">
-                <span class="material-symbols-outlined text-[22px]">notifications</span>
-                <span id="notifBadge" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <div id="notifDropdown" class="notif-dropdown">
-                <div class="px-4 py-3 border-b border-slate-100">
-                    <p class="text-sm font-semibold text-slate-700">Notifications</p>
-                </div>
-                <div id="notifList" class="p-2">
-                    <div class="px-3 py-4 text-center text-slate-400 text-sm">No recent events.</div>
-                </div>
-            </div>
-        </div>
-        <button id="btnSettings" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-            <span class="material-symbols-outlined text-[22px]">settings</span>
-        </button>
-        <button id="btnHelp" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
-            <span class="material-symbols-outlined text-[22px]">help</span>
-        </button>
-        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold ml-1">AD</div>
+    <div class="header-search">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input id="globalSearch" type="text" placeholder="Search devices..."/>
     </div>
+  </div>
+  <div class="header-right">
+    <button id="btnAdminMode" class="admin-toggle">
+      <span class="material-symbols-outlined mat-icon">verified_user</span>
+      <span id="adminModeLabel">Admin</span>
+    </button>
+    <div class="relative" style="position:relative">
+      <button id="btnNotifications" class="header-btn">
+        <span class="material-symbols-outlined">notifications</span>
+        <span id="notifBadge" class="badge-dot" style="display:none"></span>
+      </button>
+      <div id="notifDropdown" class="notif-dropdown">
+        <div class="notif-dropdown-header">Notifications</div>
+        <div id="notifList"><div class="notif-empty">No recent events.</div></div>
+      </div>
+    </div>
+    <button id="btnSettings" class="header-btn">
+      <span class="material-symbols-outlined">settings</span>
+    </button>
+    <button id="btnHelp" class="header-btn">
+      <span class="material-symbols-outlined">help</span>
+    </button>
+    <div class="avatar">HM</div>
+  </div>
 </header>
 
-<!-- ===== Sidebar ===== -->
-<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-[220px] bg-white border-r border-slate-200 flex flex-col z-40 shadow-sm">
-    <div class="px-5 py-5 border-b border-slate-100">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100">
-                <span class="material-symbols-outlined text-blue-600 text-[18px]">lan</span>
-            </div>
-            <div>
-                <p class="text-sm font-semibold text-slate-700">Operations</p>
-                <p class="text-xs text-slate-400">Local Network</p>
-            </div>
-        </div>
-    </div>
-    <nav class="flex-1 flex flex-col px-2 py-3 gap-0.5" id="sidebarNav">
-        <a class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-view="dashboard" href="#">
-            <span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
-        </a>
-        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="topology" href="#">
-            <span class="material-symbols-outlined text-[20px]">hub</span> Topology
-        </a>
-        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="monitoring" href="#">
-            <span class="material-symbols-outlined text-[20px]">monitoring</span> Monitoring
-        </a>
-        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="logs" href="#">
-            <span class="material-symbols-outlined text-[20px]">terminal</span> Logs
-        </a>
-        <a class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all" data-view="security" href="#">
-            <span class="material-symbols-outlined text-[20px]">shield</span> Security
-        </a>
-    </nav>
-    <div class="px-2 py-3 border-t border-slate-100">
-        <a id="btnSupport" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer">
-            <span class="material-symbols-outlined text-[20px]">contact_support</span> Support
-        </a>
-        <a id="btnLogout" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer">
-            <span class="material-symbols-outlined text-[20px]">logout</span> Logout
-        </a>
-    </div>
+<aside class="app-sidebar" id="appSidebar">
+  <div class="sidebar-toggle" id="sidebarToggle">
+    <span class="material-symbols-outlined">menu</span>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav">
+    <div class="sidebar-section-title">Main</div>
+    <a class="sidebar-link active" data-view="dashboard" href="#">
+      <span class="material-symbols-outlined">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a class="sidebar-link" data-view="alerts" href="#">
+      <span class="material-symbols-outlined">notifications_active</span>
+      <span>Alerts</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <a id="btnSupport" class="sidebar-link" href="#">
+      <span class="material-symbols-outlined">contact_support</span>
+      <span>Support</span>
+    </a>
+    <a id="btnLogout" class="sidebar-link" href="#">
+      <span class="material-symbols-outlined">logout</span>
+      <span>Logout</span>
+    </a>
+  </div>
 </aside>
 
-<!-- ===== Main Content ===== -->
-<main class="ml-[220px] mt-16 p-6 min-h-screen">
+<div class="side-panel-overlay" id="sidePanelOverlay"></div>
 
-    <!-- View: Dashboard -->
-    <div id="view-dashboard" class="view-container active">
+<main class="app-main" id="appMain">
 
-        <!-- Stat Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-5">
-            <div class="glass-panel rounded-xl p-5">
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Total Devices</p>
-                <div class="flex items-end gap-2">
-                    <span class="text-3xl font-bold text-slate-800" id="totalDevices">0</span>
-                    <span class="text-sm text-slate-400 mb-1">units</span>
-                </div>
-            </div>
-            <div class="glass-panel rounded-xl p-5">
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Online</p>
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl font-bold text-emerald-600" id="onlineCount">0</span>
-                    <div class="status-pulse w-3 h-3 bg-emerald-500 rounded-full relative"></div>
-                </div>
-            </div>
-            <div class="glass-panel rounded-xl p-5">
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Offline</p>
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl font-bold text-red-500" id="offlineCount">0</span>
-                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                </div>
-            </div>
-            <div class="glass-panel rounded-xl p-5">
-                <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg CPU</p>
-                    <span class="font-mono text-sm font-semibold text-blue-600" id="avgCpuLabel">0%</span>
-                </div>
-                <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-                    <div class="bg-blue-500 h-full transition-all duration-1000 rounded-full" id="avgCpuBar" style="width:0%"></div>
-                </div>
-            </div>
-            <div class="glass-panel rounded-xl p-5">
-                <div class="flex justify-between items-start mb-2">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg RAM</p>
-                    <span class="font-mono text-sm font-semibold text-amber-600" id="avgRamLabel">0%</span>
-                </div>
-                <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-                    <div class="bg-amber-500 h-full transition-all duration-1000 rounded-full" id="avgRamBar" style="width:0%"></div>
-                </div>
-            </div>
+  <div id="view-dashboard" class="view-container active">
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Total Devices</span>
+          <div class="stat-card-icon blue">
+            <span class="material-symbols-outlined">devices</span>
+          </div>
         </div>
-
-        <!-- Device Inventory -->
-        <div class="glass-panel rounded-xl overflow-hidden mb-5">
-            <div class="px-5 py-4 flex flex-wrap justify-between items-center gap-3 border-b border-slate-100">
-                <h2 class="text-base font-bold text-slate-700">Device Inventory</h2>
-                <div class="flex gap-2">
-                    <div class="relative">
-                        <button id="btnFilter" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-600 rounded-lg transition-colors flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[16px]">filter_list</span> Filter
-                            <span id="filterBadge" class="hidden ml-0.5 w-2 h-2 bg-blue-500 rounded-full"></span>
-                        </button>
-                        <div id="filterDropdown" class="filter-dropdown">
-                            <div class="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</div>
-                            <button class="filter-option w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded" data-filter="all">All Devices</button>
-                            <button class="filter-option w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded" data-filter="online">Online Only</button>
-                            <button class="filter-option w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded" data-filter="offline">Offline Only</button>
-                        </div>
-                    </div>
-                    <button id="btnExport" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-600 rounded-lg transition-colors flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">download</span> Export
-                    </button>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50">
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Device Name</th>
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Username</th>
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">IP Address</th>
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">OS</th>
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Resources (C/R)</th>
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Last Heartbeat</th>
-                            <th class="px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider w-10">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100" id="deviceTableBody"></tbody>
-                </table>
-            </div>
+        <div class="stat-card-value" id="totalDevices">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Online</span>
+          <div class="stat-card-icon green">
+            <span class="material-symbols-outlined">check_circle</span>
+          </div>
         </div>
+        <div class="stat-card-value green" id="onlineCount">0</div>
+        <div class="stat-card-footer">
+          <div class="status-pulse online" style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Offline</span>
+          <div class="stat-card-icon red">
+            <span class="material-symbols-outlined">cancel</span>
+          </div>
+        </div>
+        <div class="stat-card-value red" id="offlineCount">0</div>
+        <div class="stat-card-footer">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Avg CPU</span>
+          <div class="stat-card-icon blue">
+            <span class="material-symbols-outlined">memory</span>
+          </div>
+        </div>
+        <div class="stat-label-row">
+          <span class="stat-card-label"></span>
+          <span class="stat-value-inline" style="color:var(--primary)" id="avgCpuLabel">0%</span>
+        </div>
+        <div class="stat-bar">
+          <div class="stat-bar-inner blue" id="avgCpuBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Avg RAM</span>
+          <div class="stat-card-icon amber">
+            <span class="material-symbols-outlined">memory_alt</span>
+          </div>
+        </div>
+        <div class="stat-label-row">
+          <span class="stat-card-label"></span>
+          <span class="stat-value-inline" style="color:var(--warning)" id="avgRamLabel">0%</span>
+        </div>
+        <div class="stat-bar">
+          <div class="stat-bar-inner amber" id="avgRamBar" style="width:0%"></div>
+        </div>
+      </div>
     </div>
 
-    <!-- View: Topology -->
-    <div id="view-topology" class="view-container">
-        <div class="glass-panel rounded-xl p-10 text-center">
-            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">hub</span>
-            <h2 class="text-xl font-bold text-slate-600 mb-2">Topology View</h2>
-            <p class="text-sm text-slate-400">Network topology visualization will be available in the next update.</p>
-        </div>
-    </div>
-
-    <!-- View: Monitoring -->
-    <div id="view-monitoring" class="view-container">
-        <div class="glass-panel rounded-xl p-10 text-center">
-            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">monitoring</span>
-            <h2 class="text-xl font-bold text-slate-600 mb-2">Advanced Monitoring</h2>
-            <p class="text-sm text-slate-400">Detailed monitoring charts and analytics coming soon.</p>
-        </div>
-    </div>
-
-    <!-- View: Logs -->
-    <div id="view-logs" class="view-container">
-        <div class="glass-panel rounded-xl p-10 text-center">
-            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">terminal</span>
-            <h2 class="text-xl font-bold text-slate-600 mb-2">System Logs</h2>
-            <p class="text-sm text-slate-400">Centralized log viewer will be integrated in a future sprint.</p>
-        </div>
-    </div>
-
-    <!-- View: Security -->
-    <div id="view-security" class="view-container">
-        <div class="glass-panel rounded-xl p-10 text-center">
-            <span class="material-symbols-outlined text-5xl text-slate-300 mb-4">shield</span>
-            <h2 class="text-xl font-bold text-slate-600 mb-2">Security Dashboard</h2>
-            <p class="text-sm text-slate-400">Security monitoring and threat detection coming in a future release.</p>
-        </div>
-    </div>
-
-    <!-- ===== Side Panel (Slide-over) ===== -->
-    <div class="fixed right-0 top-16 h-[calc(100vh-64px)] w-[460px] bg-white shadow-2xl border-l border-slate-200 z-50 transform translate-x-full transition-transform duration-300 flex flex-col" id="sidePanel">
-        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-blue-50 rounded-lg text-blue-600">
-                    <span class="material-symbols-outlined text-[22px]">desktop_windows</span>
-                </div>
-                <div>
-                    <h2 class="text-base font-bold text-slate-700" id="panelDeviceName">—</h2>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500" id="panelStatusDot"></span>
-                        <span class="text-xs text-slate-400 font-medium" id="panelSessionUser">Select a device</span>
-                    </div>
-                </div>
-            </div>
-            <button id="panelCloseBtn" class="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
-                <span class="material-symbols-outlined text-[20px]">close</span>
+    <div class="content-card">
+      <div class="content-card-header">
+        <h2 class="content-card-title">Device Inventory</h2>
+        <div class="card-actions">
+          <div class="filter-trigger" style="position:relative">
+            <button id="btnFilter" class="btn btn-surface">
+              <span class="material-symbols-outlined">filter_list</span>
+              Filter
+              <span id="filterBadge" class="filter-badge"></span>
             </button>
-        </div>
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-5">
-            <div class="grid grid-cols-3 gap-3">
-                <div class="glass-panel p-4 rounded-xl text-center">
-                    <p class="text-xs font-semibold text-slate-400 mb-2">CPU</p>
-                    <div class="relative inline-flex items-center justify-center">
-                        <svg class="w-16 h-16 transform -rotate-90">
-                            <circle class="text-slate-100" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"/>
-                            <circle class="text-blue-500" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelCpuCircle"/>
-                        </svg>
-                        <span class="absolute text-xs font-mono font-bold text-slate-600" id="panelCpuValue">0%</span>
-                    </div>
-                </div>
-                <div class="glass-panel p-4 rounded-xl text-center">
-                    <p class="text-xs font-semibold text-slate-400 mb-2">RAM</p>
-                    <div class="relative inline-flex items-center justify-center">
-                        <svg class="w-16 h-16 transform -rotate-90">
-                            <circle class="text-slate-100" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"/>
-                            <circle class="text-amber-500" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelRamCircle"/>
-                        </svg>
-                        <span class="absolute text-xs font-mono font-bold text-slate-600" id="panelRamValue">0%</span>
-                    </div>
-                </div>
-                <div class="glass-panel p-4 rounded-xl text-center">
-                    <p class="text-xs font-semibold text-slate-400 mb-2">DISK</p>
-                    <div class="relative inline-flex items-center justify-center">
-                        <svg class="w-16 h-16 transform -rotate-90">
-                            <circle class="text-slate-100" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"/>
-                            <circle class="text-emerald-500" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="175.9" stroke-dashoffset="175.9" stroke-width="4" id="panelDiskCircle"/>
-                        </svg>
-                        <span class="absolute text-xs font-mono font-bold text-slate-600" id="panelDiskValue">0%</span>
-                    </div>
-                </div>
+            <div id="filterDropdown" class="dropdown" style="right:0;left:auto">
+              <div class="dropdown-header">Status</div>
+              <button class="dropdown-item active" data-filter="all">All Devices</button>
+              <button class="dropdown-item" data-filter="online">Online Only</button>
+              <button class="dropdown-item" data-filter="offline">Offline Only</button>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-3">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Hardware Specs</p>
-                        <p class="text-sm font-semibold text-slate-700" id="panelCpuModel">—</p>
-                        <p class="text-sm text-slate-500" id="panelRamTotal">—</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">OS Info</p>
-                        <p class="text-sm font-semibold text-slate-700" id="panelOsName">—</p>
-                        <p class="text-sm text-slate-500" id="panelOsBuild">—</p>
-                    </div>
-                </div>
-                <div class="space-y-3">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Network</p>
-                        <p class="text-sm font-semibold text-slate-700" id="panelIpAddress">—</p>
-                        <p class="text-sm text-slate-500" id="panelMacAddress">—</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Last Seen</p>
-                        <p class="text-sm font-semibold text-slate-700" id="panelLastSeen">—</p>
-                        <p class="text-sm text-slate-500" id="panelStatusText">—</p>
-                    </div>
-                </div>
-            </div>
-            <div class="glass-panel rounded-xl p-4">
-                <div class="flex justify-between items-center mb-3">
-                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Running Processes</h4>
-                    <div class="relative">
-                        <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[14px]">search</span>
-                        <input id="processSearchInput" class="bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-3 py-1 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-32" placeholder="Filter..." type="text"/>
-                    </div>
-                </div>
-                <div class="space-y-1 max-h-60 overflow-y-auto custom-scrollbar" id="panelProcessList">
-                    <div class="p-4 text-center text-slate-400 text-sm">Select a device to see running processes.</div>
-                </div>
-            </div>
+          </div>
+          <button id="btnExport" class="btn btn-surface">
+            <span class="material-symbols-outlined">download</span>
+            Export
+          </button>
         </div>
-        <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 grid grid-cols-3 gap-3">
-            <button id="btnRestart" class="flex flex-col items-center justify-center gap-1 py-2.5 bg-white hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-200 transition-all cursor-pointer">
-                <span class="material-symbols-outlined text-[20px]">restart_alt</span>
-                <span class="text-[9px] font-bold uppercase tracking-wider">Restart</span>
-            </button>
-            <button id="btnShutdown" class="flex flex-col items-center justify-center gap-1 py-2.5 bg-white hover:bg-red-50 rounded-lg text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 transition-all cursor-pointer">
-                <span class="material-symbols-outlined text-[20px]">power_settings_new</span>
-                <span class="text-[9px] font-bold uppercase tracking-wider">Shutdown</span>
-            </button>
-            <button id="btnRefresh" class="flex flex-col items-center justify-center gap-1 py-2.5 bg-white hover:bg-emerald-50 rounded-lg text-slate-500 hover:text-emerald-600 border border-slate-200 hover:border-emerald-200 transition-all cursor-pointer">
-                <span class="material-symbols-outlined text-[20px]">refresh</span>
-                <span class="text-[9px] font-bold uppercase tracking-wider">Refresh</span>
-            </button>
-        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="device-table">
+          <thead>
+            <tr>
+              <th>Device</th>
+              <th>IP Address</th>
+              <th>OS</th>
+              <th>Status</th>
+              <th>Resources</th>
+              <th>Heartbeat</th>
+              <th style="width:40px"></th>
+            </tr>
+          </thead>
+          <tbody id="deviceTableBody"></tbody>
+        </table>
+      </div>
     </div>
+  </div>
+
+  <div id="view-alerts" class="view-container">
+    <div class="content-card">
+      <div class="content-card-header">
+        <h2 class="content-card-title">Alert History</h2>
+        <button id="btnClearAlerts" class="btn btn-ghost btn-sm">
+          <span class="material-symbols-outlined">delete_sweep</span>
+          Clear All
+        </button>
+      </div>
+      <div id="alertsList" style="padding:20px">
+        <div class="empty-state">
+          <span class="material-symbols-outlined">notifications_off</span>
+          <p>No alerts recorded yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
-<!-- ===== Settings Modal ===== -->
+<div class="side-panel" id="sidePanel">
+  <div class="panel-header">
+    <div class="panel-header-left">
+      <span class="material-symbols-outlined">desktop_windows</span>
+      <div>
+        <div class="panel-device-name" id="panelDeviceName">—</div>
+        <div class="panel-device-meta">
+          <span class="dot" id="panelStatusDot"></span>
+          <span id="panelSessionUser">Select a device</span>
+        </div>
+      </div>
+    </div>
+    <button class="panel-close" id="panelCloseBtn">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <div class="panel-tabs" id="panelTabs">
+    <button class="panel-tab active" data-tab="overview">Overview</button>
+    <button class="panel-tab" data-tab="processes">Processes</button>
+    <button class="panel-tab" data-tab="control">Control</button>
+    <button class="panel-tab" data-tab="network">Network</button>
+  </div>
+
+  <div class="panel-body" id="panelBody">
+
+    <div class="panel-tab-content active" id="tab-overview">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-card-label">CPU</div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 72 72">
+              <circle class="gauge-bg" cx="36" cy="36" r="28"/>
+              <circle class="gauge-fg blue" id="panelCpuCircle" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
+            </svg>
+            <span class="gauge-value" id="panelCpuValue">0%</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-label">RAM</div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 72 72">
+              <circle class="gauge-bg" cx="36" cy="36" r="28"/>
+              <circle class="gauge-fg amber" id="panelRamCircle" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
+            </svg>
+            <span class="gauge-value" id="panelRamValue">0%</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card-label">DISK</div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 72 72">
+              <circle class="gauge-bg" cx="36" cy="36" r="28"/>
+              <circle class="gauge-fg green" id="panelDiskCircle" cx="36" cy="36" r="28" stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
+            </svg>
+            <span class="gauge-value" id="panelDiskValue">0%</span>
+          </div>
+        </div>
+      </div>
+      <div class="info-grid">
+        <div class="info-section">
+          <span class="info-section-label">Hardware</span>
+          <span class="value" id="panelCpuModel">—</span>
+          <span class="sub" id="panelRamTotal">—</span>
+        </div>
+        <div class="info-section">
+          <span class="info-section-label">Operating System</span>
+          <span class="value" id="panelOsName">—</span>
+          <span class="sub" id="panelOsBuild">—</span>
+        </div>
+        <div class="info-section">
+          <span class="info-section-label">Network</span>
+          <span class="value" id="panelIpAddress">—</span>
+          <span class="sub" id="panelMacAddress">—</span>
+        </div>
+        <div class="info-section">
+          <span class="info-section-label">Last Seen</span>
+          <span class="value" id="panelLastSeen">—</span>
+          <span class="sub" id="panelStatusText">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-tab-content" id="tab-processes">
+      <div class="process-search">
+        <span class="material-symbols-outlined">search</span>
+        <input id="processSearchInput" type="text" placeholder="Filter processes..."/>
+      </div>
+      <div id="panelProcessList">
+        <div class="empty-state" style="padding:24px">
+          <p>Select a device to see running processes.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-tab-content" id="tab-control">
+      <div class="control-grid">
+        <button id="btnRestart" class="control-btn restart">
+          <span class="material-symbols-outlined">restart_alt</span>
+          <span class="label">Restart</span>
+        </button>
+        <button id="btnShutdown" class="control-btn shutdown">
+          <span class="material-symbols-outlined">power_settings_new</span>
+          <span class="label">Shutdown</span>
+        </button>
+        <button id="btnRefresh" class="control-btn refresh">
+          <span class="material-symbols-outlined">refresh</span>
+          <span class="label">Refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-tab-content" id="tab-network">
+      <div class="network-info">
+        <div class="network-row">
+          <span class="label">IP Address</span>
+          <span class="value" id="netIp">—</span>
+        </div>
+        <div class="network-row">
+          <span class="label">MAC Address</span>
+          <span class="value" id="netMac">—</span>
+        </div>
+        <div class="network-row">
+          <span class="label">Hostname</span>
+          <span class="value" id="netHostname">—</span>
+        </div>
+        <div class="network-row">
+          <span class="label">Status</span>
+          <span class="value" id="netStatus">—</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div id="settingsModal" class="modal-backdrop">
-    <div class="modal-content p-6">
-        <div class="flex justify-between items-center mb-5">
-            <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
-                <span class="material-symbols-outlined text-blue-600">settings</span> Settings
-            </h2>
-            <button class="modal-close-btn p-1 hover:bg-slate-100 rounded-full text-slate-400">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-        <div class="space-y-4">
-            <div class="flex items-center justify-between py-2">
-                <div>
-                    <p class="text-sm font-medium text-slate-700">Auto-refresh</p>
-                    <p class="text-xs text-slate-400">Automatically refresh device data</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked class="sr-only peer">
-                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-            </div>
-            <div class="flex items-center justify-between py-2">
-                <div>
-                    <p class="text-sm font-medium text-slate-700">Sound alerts</p>
-                    <p class="text-xs text-slate-400">Play sound on device events</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" class="sr-only peer">
-                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-            </div>
-            <div class="flex items-center justify-between py-2">
-                <div>
-                    <p class="text-sm font-medium text-slate-700">Show offline devices</p>
-                    <p class="text-xs text-slate-400">Display offline devices in inventory</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked class="sr-only peer">
-                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-            </div>
-        </div>
-        <div class="mt-6 pt-4 border-t border-slate-100 text-right">
-            <button class="modal-close-btn px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Close</button>
-        </div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <span class="material-symbols-outlined">settings</span>
+        Settings
+      </h2>
+      <button class="modal-close modal-close-btn">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;font-size:13px;color:var(--text-primary)">Auto-refresh</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Automatically refresh device data</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+          <input type="checkbox" checked style="opacity:0;width:0;height:0">
+          <span style="position:absolute;inset:0;background:var(--border);border-radius:20px;transition:0.2s"></span>
+          <span style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s"></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;font-size:13px;color:var(--text-primary)">Sound alerts</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Play sound on device events</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+          <input type="checkbox" style="opacity:0;width:0;height:0">
+          <span style="position:absolute;inset:0;background:var(--border);border-radius:20px;transition:0.2s"></span>
+          <span style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s"></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+        <div>
+          <div style="font-weight:600;font-size:13px;color:var(--text-primary)">Show offline devices</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Display offline devices in inventory</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+          <input type="checkbox" checked style="opacity:0;width:0;height:0">
+          <span style="position:absolute;inset:0;background:var(--border);border-radius:20px;transition:0.2s"></span>
+          <span style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:0.2s"></span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-surface modal-close-btn">Close</button>
+    </div>
+  </div>
 </div>
 
-<!-- ===== Help Modal ===== -->
 <div id="helpModal" class="modal-backdrop">
-    <div class="modal-content p-6">
-        <div class="flex justify-between items-center mb-5">
-            <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
-                <span class="material-symbols-outlined text-blue-600">help</span> Help & About
-            </h2>
-            <button class="modal-close-btn p-1 hover:bg-slate-100 rounded-full text-slate-400">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-        <div class="space-y-4 text-sm text-slate-600">
-            <p><strong class="text-slate-700">HonMonit</strong> — Real-time network device monitoring system.</p>
-            <p>This NOC dashboard allows you to monitor remote devices, view resource usage, manage processes, and send remote commands.</p>
-            <div class="bg-slate-50 rounded-lg p-4 space-y-2">
-                <p class="font-semibold text-slate-700">Quick Tips:</p>
-                <ul class="list-disc list-inside space-y-1 text-slate-500">
-                    <li>Click a device row to open the detail panel</li>
-                    <li>Use the search bar to filter devices</li>
-                    <li>Toggle Admin Mode for advanced controls</li>
-                    <li>Use the Filter button to sort by status</li>
-                </ul>
-            </div>
-        </div>
-        <div class="mt-6 pt-4 border-t border-slate-100 text-right">
-            <button class="modal-close-btn px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Close</button>
-        </div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <span class="material-symbols-outlined">help</span>
+        Help &amp; About
+      </h2>
+      <button class="modal-close modal-close-btn">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
+    <div class="modal-body">
+      <p><strong style="color:var(--text-primary)">HonMonit</strong> — Real-time PC monitoring &amp; control system.</p>
+      <br/>
+      <p>Monitor remote client PCs, view resource usage, manage processes, and send remote commands directly from your browser.</p>
+      <br/>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px">
+        <div style="font-weight:600;font-size:13px;color:var(--text-primary);margin-bottom:8px">Quick Tips:</div>
+        <ul style="list-style:disc;padding-left:20px;font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column;gap:4px">
+          <li>Click a device row to open the detail panel</li>
+          <li>Use the search bar to filter devices</li>
+          <li>Toggle Admin mode for restart &amp; shutdown controls</li>
+          <li>Use the Filter button to sort by status</li>
+          <li>Kill processes from the Processes tab</li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-surface modal-close-btn">Close</button>
+    </div>
+  </div>
 </div>
 
-<!-- ===== Support Modal ===== -->
 <div id="supportModal" class="modal-backdrop">
-    <div class="modal-content p-6">
-        <div class="flex justify-between items-center mb-5">
-            <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
-                <span class="material-symbols-outlined text-blue-600">contact_support</span> Support
-            </h2>
-            <button class="modal-close-btn p-1 hover:bg-slate-100 rounded-full text-slate-400">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-        <div class="space-y-4 text-sm text-slate-600">
-            <p>Need help with HonMonit? Contact the support team:</p>
-            <div class="bg-slate-50 rounded-lg p-4 space-y-2">
-                <p><span class="font-semibold text-slate-700">Email:</span> support@honmonit.local</p>
-                <p><span class="font-semibold text-slate-700">Docs:</span> docs.honmonit.local</p>
-                <p><span class="font-semibold text-slate-700">Version:</span> 1.0</p>
-            </div>
-        </div>
-        <div class="mt-6 pt-4 border-t border-slate-100 text-right">
-            <button class="modal-close-btn px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Close</button>
-        </div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">
+        <span class="material-symbols-outlined">contact_support</span>
+        Support
+      </h2>
+      <button class="modal-close modal-close-btn">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
+    <div class="modal-body">
+      <p>Need help with HonMonit? Contact the support team:</p>
+      <br/>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px">
+        <p style="font-size:13px"><strong style="color:var(--text-primary)">Email:</strong> support@honmonit.local</p>
+        <p style="font-size:13px;margin-top:4px"><strong style="color:var(--text-primary)">Docs:</strong> docs.honmonit.local</p>
+        <p style="font-size:13px;margin-top:4px"><strong style="color:var(--text-primary)">Version:</strong> 2.0</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-surface modal-close-btn">Close</button>
+    </div>
+  </div>
 </div>
 
-<!-- ===== Row Actions Menu ===== -->
 <div id="rowActionsMenu" class="row-actions-menu">
-    <button class="row-action-btn w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2" data-action="details">
-        <span class="material-symbols-outlined text-[16px]">info</span> Details
-    </button>
-    <button class="row-action-btn w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2 text-blue-600 admin-only" data-action="restart">
-        <span class="material-symbols-outlined text-[16px]">restart_alt</span> Restart
-    </button>
-    <button class="row-action-btn w-full text-left px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 rounded flex items-center gap-2 text-red-500 admin-only" data-action="shutdown">
-        <span class="material-symbols-outlined text-[16px]">power_settings_new</span> Shutdown
-    </button>
+  <button class="row-action-btn" data-action="details">
+    <span class="material-symbols-outlined">info</span> Details
+  </button>
+  <button class="row-action-btn text-danger admin-only" data-action="restart">
+    <span class="material-symbols-outlined">restart_alt</span> Restart
+  </button>
+  <button class="row-action-btn text-danger admin-only" data-action="shutdown">
+    <span class="material-symbols-outlined">power_settings_new</span> Shutdown
+  </button>
 </div>
 
 <script src="static/js/app.js"></script>

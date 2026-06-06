@@ -43,8 +43,6 @@
     var statOnline = $("onlineCount");
     var statOffline = $("offlineCount");
 
-    // ── Helpers ────────────────────────────────────────────────────────────
-
     function formatHeartbeat(hb) {
         if (!hb) return "\u2014";
         var d = new Date(hb);
@@ -86,8 +84,6 @@
         return d.innerHTML;
     }
 
-    // ── Notifications ─────────────────────────────────────────────────────
-
     function showNotification(msg, type) {
         var div = document.createElement("div");
         var bg = type === "success" ? "bg-emerald-500" : "bg-red-500";
@@ -122,8 +118,6 @@
         });
         list.innerHTML = html;
     }
-
-    // ── Kill process ───────────────────────────────────────────────────────
 
     function doKill(deviceId, pid, name) {
         fetch(API + "/api/devices/" + deviceId + "/kill", {
@@ -164,8 +158,6 @@
             })
             .catch(function () { showNotification("Shutdown failed: Network error", "error"); });
     }
-
-    // ── Process list ───────────────────────────────────────────────────────
 
     var _lastProcessList = [];
 
@@ -222,8 +214,6 @@
             });
         });
     }
-
-    // ── Device table ───────────────────────────────────────────────────────
 
     function getFilteredDevices() {
         var list = Object.values(devices);
@@ -302,8 +292,6 @@
         });
     }
 
-    // ── Row actions menu ──────────────────────────────────────────────────
-
     var activeRowMenu = null;
 
     function showRowActions(btn, deviceId) {
@@ -335,8 +323,6 @@
             hideRowActions();
         }
     });
-
-    // ── Side panel ─────────────────────────────────────────────────────────
 
     function selectDevice(deviceId) {
         selectedDeviceId = deviceId;
@@ -387,12 +373,15 @@
         if (sidePanel) sidePanel.classList.remove("translate-x-full");
     }
 
-    // ── WebSocket ──────────────────────────────────────────────────────────
+    var _wsReconnectAttempt = 0;
+    var WS_RECONNECT_BASE = 1000;
+    var WS_RECONNECT_MAX = 30000;
 
     function connectDashboardWS() {
         var ws = new WebSocket(WS_URL);
 
         ws.onmessage = function (event) {
+            _wsReconnectAttempt = 0;
             try {
                 var data = JSON.parse(event.data);
                 switch (data.type) {
@@ -429,15 +418,18 @@
         };
 
         ws.onclose = function () {
-            setTimeout(connectDashboardWS, 3000);
+            var delay = Math.min(
+                WS_RECONNECT_BASE * Math.pow(2, _wsReconnectAttempt),
+                WS_RECONNECT_MAX
+            );
+            _wsReconnectAttempt++;
+            setTimeout(connectDashboardWS, delay);
         };
 
         ws.onerror = function () {
             ws.close();
         };
     }
-
-    // ── Side panel close ───────────────────────────────────────────────────
 
     if (panelCloseBtn && sidePanel) {
         panelCloseBtn.addEventListener("click", function () {
@@ -446,8 +438,6 @@
             renderDeviceTable();
         });
     }
-
-    // ── Search / Refresh ───────────────────────────────────────────────────
 
     if (processSearchInput) {
         processSearchInput.addEventListener("input", function () {
@@ -465,8 +455,6 @@
         });
     }
 
-    // ── Global Search ──────────────────────────────────────────────────────
-
     var globalSearch = $("globalSearch");
     if (globalSearch) {
         globalSearch.addEventListener("input", function () {
@@ -474,8 +462,6 @@
             renderDeviceTable();
         });
     }
-
-    // ── Admin Mode ─────────────────────────────────────────────────────────
 
     var btnAdminMode = $("btnAdminMode");
     var adminModeLabel = $("adminModeLabel");
@@ -497,8 +483,6 @@
         });
     }
 
-    // ── Notifications Dropdown ─────────────────────────────────────────────
-
     var btnNotifications = $("btnNotifications");
     var notifDropdown = $("notifDropdown");
     var notifBadge = $("notifBadge");
@@ -516,15 +500,9 @@
         });
     }
 
-    // ── Settings Modal ─────────────────────────────────────────────────────
-
     initModal("btnSettings", "settingsModal");
 
-    // ── Help Modal ─────────────────────────────────────────────────────────
-
     initModal("btnHelp", "helpModal");
-
-    // ── Support Modal ──────────────────────────────────────────────────────
 
     initModal("btnSupport", "supportModal");
 
@@ -545,8 +523,6 @@
             if (e.target === modal) modal.classList.remove("active");
         });
     }
-
-    // ── Sidebar Navigation ─────────────────────────────────────────────────
 
     var navLinks = document.querySelectorAll(".nav-link");
     var viewContainers = document.querySelectorAll(".view-container");
@@ -577,8 +553,6 @@
         });
     });
 
-    // ── Filter Dropdown ────────────────────────────────────────────────────
-
     var btnFilter = $("btnFilter");
     var filterDropdown = $("filterDropdown");
     var filterBadge = $("filterBadge");
@@ -607,8 +581,6 @@
         });
     }
 
-    // ── Export CSV ─────────────────────────────────────────────────────────
-
     var btnExport = $("btnExport");
     if (btnExport) {
         btnExport.addEventListener("click", function () {
@@ -636,8 +608,6 @@
         });
     }
 
-    // ── Row Action Buttons ─────────────────────────────────────────────────
-
     var rowActionsMenu = $("rowActionsMenu");
     if (rowActionsMenu) {
         rowActionsMenu.querySelectorAll(".row-action-btn").forEach(function (btn) {
@@ -663,8 +633,6 @@
         });
     }
 
-    // ── Side Panel Restart / Shutdown ──────────────────────────────────────
-
     var btnRestart = $("btnRestart");
     var btnShutdown = $("btnShutdown");
 
@@ -688,8 +656,6 @@
         });
     }
 
-    // ── Logout ─────────────────────────────────────────────────────────────
-
     var btnLogout = $("btnLogout");
     if (btnLogout) {
         btnLogout.addEventListener("click", function () {
@@ -698,8 +664,6 @@
             }
         });
     }
-
-    // ── Init ───────────────────────────────────────────────────────────────
 
     function init() {
         fetch(API + "/api/devices")

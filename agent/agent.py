@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-"""HonMonit Agent — Sprint 1.
-
-Collects device identity, connects to the server via WebSocket,
-and registers itself. Holds the connection open so the server
-knows the device is online.
-"""
-
 import os
 import sys
 import json
@@ -13,15 +5,41 @@ import asyncio
 import uuid
 import socket
 import platform
+import subprocess
+import logging
 
 import websockets
 import psutil
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("honmonit.agent")
 
-# ── Info collectors ──────────────────────────────────────────────────────────
+DEVICE_ID_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".device_id"
+)
+RECONNECT_BASE = 2
+RECONNECT_MAX = 60
 
-def get_device_id() -> str:
-    return str(uuid.uuid4())
+
+def load_device_id() -> str:
+    try:
+        with open(DEVICE_ID_FILE, "r") as f:
+            val = f.read().strip()
+            if val:
+                return val
+    except (FileNotFoundError, OSError):
+        pass
+    val = str(uuid.uuid4())
+    try:
+        with open(DEVICE_ID_FILE, "w") as f:
+            f.write(val)
+    except OSError:
+        pass
+    return val
 
 
 def get_hostname() -> str:
@@ -37,7 +55,6 @@ def get_username() -> str:
 
 
 def get_ip() -> str:
-    """Obtain the LAN IP by creating a dummy outbound socket."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(1)
@@ -61,10 +78,7 @@ def get_os() -> str:
     return f"{system} {release}"
 
 
-# ── Process list ──────────────────────────────────────────────────────────────
-
 def get_process_list() -> list:
-    """Collect top-100 processes sorted by memory usage descending."""
     processes = []
     for proc in psutil.process_iter(["pid", "name", "memory_info"]):
         try:
@@ -82,32 +96,40 @@ def get_process_list() -> list:
     return processes[:100]
 
 
-# ── Heartbeat ─────────────────────────────────────────────────────────────────
-
-async def heartbeat_loop(ws, device_id):
-    """Send a heartbeat every 30 seconds with system metrics."""
-    psutil.cpu_percent(interval=0.1)  # initialize first call delta
+async def heartbeat_loop(ws, device_id, hb_stats: dict):
+    psutil.cpu_percent(interval=0.1)
     while True:
         await asyncio.sleep(30)
+        try:
+            cpu = psutil.cpu_percent(interval=None)
+            ram = psutil.virtual_memory().percent
+            disk = psutil.disk_usage('/').percent
+        except Exception as exc:
+            logger.warning("Failed to collect metrics: %s", exc)
+            continue
+
         heartbeat = {
             "type": "heartbeat",
             "device_id": device_id,
-            "cpu_usage": psutil.cpu_percent(interval=None),
-            "ram_usage": psutil.virtual_memory().percent,
-            "disk_usage": psutil.disk_usage('/').percent,
+            "cpu_usage": cpu,
+            "ram_usage": ram,
+            "disk_usage": disk,
         }
-        await ws.send(json.dumps(heartbeat))
-        print(f"[Agent] Heartbeat — CPU:{heartbeat['cpu_usage']}% "
-              f"RAM:{heartbeat['ram_usage']}% "
-              f"DISK:{heartbeat['disk_usage']}%")
+        try:
+            await ws.send(json.dumps(heartbeat))
+            hb_stats["sent"] += 1
+        except websockets.exceptions.ConnectionClosed:
+            logger.warning("Heartbeat failed — connection closed")
+            break
+        except Exception as exc:
+            logger.warning("Heartbeat send failed: %s", exc)
+            break
 
-
-# ── Main agent loop ──────────────────────────────────────────────────────────
 
 async def main():
     server_url = sys.argv[1] if len(sys.argv) > 1 else "ws://localhost:8000/ws/agent"
 
-    device_id = get_device_id()
+    device_id = load_device_id()
     register_payload = {
         "type": "register",
         "device_id": device_id,
@@ -117,34 +139,44 @@ async def main():
         "os": get_os(),
     }
 
-    print(f"[Agent] device_id = {device_id}")
-    print(f"[Agent] hostname   = {register_payload['hostname']}")
-    print(f"[Agent] username   = {register_payload['username']}")
-    print(f"[Agent] ip         = {register_payload['ip']}")
-    print(f"[Agent] os         = {register_payload['os']}")
-    print(f"[Agent] target     = {server_url}")
+    logger.info("device_id = %s", device_id)
+    logger.info("hostname   = %s", register_payload["hostname"])
+    logger.info("username   = %s", register_payload["username"])
+    logger.info("ip         = %s", register_payload["ip"])
+    logger.info("os         = %s", register_payload["os"])
+    logger.info("target     = %s", server_url)
+
+    attempt = 0
 
     while True:
         try:
             async with websockets.connect(server_url) as ws:
+                attempt = 0
                 await ws.send(json.dumps(register_payload))
-                print(f"[Agent] Registered — starting heartbeat")
+                logger.info("Registered — starting heartbeat")
 
-                hb_task = asyncio.create_task(heartbeat_loop(ws, device_id))
+                hb_stats = {"sent": 0}
+                hb_task = asyncio.create_task(
+                    heartbeat_loop(ws, device_id, hb_stats)
+                )
 
                 try:
-                    # Stay connected. The server detects the disconnect
-                    # when this loop exits.
-                    # Also process incoming commands from the server.
                     async for raw in ws:
-                        data = json.loads(raw)
+                        try:
+                            data = json.loads(raw)
+                        except json.JSONDecodeError as exc:
+                            logger.warning("Invalid JSON from server: %s", exc)
+                            continue
+
                         if data.get("type") != "command":
                             continue
                         cmd = data.get("command")
 
                         if cmd == "get_processes":
                             processes = get_process_list()
-                            print(f"[Agent] Sending {len(processes)} processes")
+                            logger.info(
+                                "Sending %d processes", len(processes)
+                            )
                             await ws.send(json.dumps({
                                 "type": "command_result",
                                 "command": "get_processes",
@@ -154,34 +186,32 @@ async def main():
                             }))
 
                         elif cmd == "restart":
-                            print(f"[Agent] Restarting system...")
+                            logger.info("Restarting system...")
                             await ws.send(json.dumps({
                                 "type": "command_result",
                                 "command": "restart",
                                 "id": data.get("id"),
                                 "success": True,
-                                "data": {"message": "System restarting..."},
                             }))
                             await asyncio.sleep(1)
                             if platform.system() == "Windows":
-                                os.system("shutdown /r /t 10")
+                                subprocess.run(["shutdown", "/r", "/t", "0"])
                             else:
-                                os.system("shutdown -r +1")
+                                subprocess.run(["shutdown", "-r", "+0"])
 
                         elif cmd == "shutdown":
-                            print(f"[Agent] Shutting down system...")
+                            logger.info("Shutting down system...")
                             await ws.send(json.dumps({
                                 "type": "command_result",
                                 "command": "shutdown",
                                 "id": data.get("id"),
                                 "success": True,
-                                "data": {"message": "System shutting down..."},
                             }))
                             await asyncio.sleep(1)
                             if platform.system() == "Windows":
-                                os.system("shutdown /s /t 10")
+                                subprocess.run(["shutdown", "/s", "/t", "0"])
                             else:
-                                os.system("shutdown -h +1")
+                                subprocess.run(["shutdown", "-h", "+0"])
 
                         elif cmd == "kill_process":
                             pid = data.get("params", {}).get("pid")
@@ -202,7 +232,7 @@ async def main():
                                 except psutil.TimeoutExpired:
                                     proc.kill()
                                     proc.wait(timeout=2)
-                                print(f"[Agent] Killed PID {pid}")
+                                logger.info("Killed PID %d", pid)
                                 await ws.send(json.dumps({
                                     "type": "command_result",
                                     "command": "kill_process",
@@ -228,15 +258,26 @@ async def main():
                                 }))
                 finally:
                     hb_task.cancel()
+                    try:
+                        await hb_task
+                    except asyncio.CancelledError:
+                        pass
+                    logger.info(
+                        "Heartbeat stats: %d sent", hb_stats["sent"]
+                    )
 
         except (websockets.exceptions.ConnectionClosed, OSError) as exc:
-            print(f"[Agent] Disconnected: {exc}")
+            logger.warning("Disconnected: %s", exc)
         except KeyboardInterrupt:
-            print("\n[Agent] Shutting down")
+            logger.info("Shutting down")
             break
 
-        print("[Agent] Reconnecting in 5 seconds...")
-        await asyncio.sleep(5)
+        attempt += 1
+        delay = min(RECONNECT_BASE * 2 ** (attempt - 1), RECONNECT_MAX)
+        logger.info(
+            "Reconnecting in %ds (attempt %d)...", delay, attempt
+        )
+        await asyncio.sleep(delay)
 
 
 if __name__ == "__main__":
