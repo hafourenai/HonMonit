@@ -95,8 +95,8 @@
 
     function showNotification(msg, type) {
         var div = document.createElement("div");
-        var bg = type === "success" ? "bg-emerald-500" : "bg-red-500";
-        div.className = "fixed top-4 right-4 z-[110] px-4 py-3 rounded-xl text-sm font-semibold shadow-lg text-white transition-all duration-300 " + bg;
+        var bg = type === "success" ? "toast success" : "toast error";
+        div.className = bg;
         div.textContent = msg;
         document.body.appendChild(div);
         setTimeout(function () { div.style.opacity = "0"; setTimeout(function () { div.remove(); }, 300); }, 3500);
@@ -114,16 +114,16 @@
         var list = $("notifList");
         if (!list) return;
         if (deviceNotifications.length === 0) {
-            list.innerHTML = '<div class="px-3 py-4 text-center text-slate-400 text-sm">No recent events.</div>';
+            list.innerHTML = '<div class="notif-empty">No recent events.</div>';
             return;
         }
         var html = "";
         deviceNotifications.forEach(function (n) {
-            var dot = n.type === "online" ? "bg-emerald-500" : n.type === "offline" ? "bg-red-500" : "bg-blue-500";
-            html += '<div class="flex items-start gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-lg text-sm">' +
-                '<div class="w-2 h-2 rounded-full ' + dot + ' mt-1.5 shrink-0"></div>' +
-                '<div><p class="text-slate-700 font-medium">' + escapeHtml(n.title) + '</p>' +
-                '<p class="text-xs text-slate-400">' + escapeHtml(n.desc) + ' \u2022 ' + n.time + '</p></div></div>';
+            var dot = n.type === "online" ? "online" : n.type === "offline" ? "offline" : "info";
+            html += '<div class="notif-item">' +
+                '<span class="hb-dot ' + dot + '" style="margin-top:4px"></span>' +
+                '<div class="notif-content"><p>' + escapeHtml(n.title) + '</p>' +
+                '<p>' + escapeHtml(n.desc) + ' \u2022 ' + n.time + '</p></div></div>';
         });
         list.innerHTML = html;
     }
@@ -172,7 +172,7 @@
 
     function loadProcesses(deviceId) {
         if (!panelProcessList) return;
-        panelProcessList.innerHTML = '<div class="p-4 text-center text-slate-400 text-sm">Loading processes...</div>';
+        panelProcessList.innerHTML = '<div class="empty-state"><p>Loading processes...</p></div>';
 
         fetch(API + "/api/devices/" + deviceId + "/processes", { method: "POST" })
             .then(function (res) { return res.json(); })
@@ -181,34 +181,34 @@
                     _lastProcessList = data.data.processes;
                     renderProcessList(_lastProcessList);
                 } else {
-                    panelProcessList.innerHTML = '<div class="p-4 text-center text-red-500 text-sm">' + escapeHtml(data.error || "Failed") + "</div>";
+                    panelProcessList.innerHTML = '<div class="empty-state"><p>' + escapeHtml(data.error || "Failed") + "</p></div>";
                 }
             })
             .catch(function () {
-                panelProcessList.innerHTML = '<div class="p-4 text-center text-red-500 text-sm">Failed to retrieve process list</div>';
+                panelProcessList.innerHTML = '<div class="empty-state"><p>Failed to retrieve process list</p></div>';
             });
     }
 
     function renderProcessList(list) {
         if (!panelProcessList) return;
         if (!list || list.length === 0) {
-            panelProcessList.innerHTML = '<div class="p-4 text-center text-slate-400 text-sm">No processes found.</div>';
+            panelProcessList.innerHTML = '<div class="empty-state"><p>No processes found.</p></div>';
             return;
         }
-        var html = '<div class="flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-slate-400 border-b border-slate-100">' +
-            '<span class="flex-1">Process Name</span>' +
-            '<span class="w-12 text-right">PID</span>' +
-            '<span class="w-16 text-right">Memory</span>' +
-            '<span class="w-10 text-right">Action</span></div>' +
-            '<div class="text-xs text-slate-400 px-3 py-1">' + list.length + " processes</div>";
+        var html = '<div class="process-list-header">' +
+            '<span>Process Name</span>' +
+            '<span>PID</span>' +
+            '<span>Memory</span>' +
+            '<span>Action</span></div>' +
+            '<div style="padding:4px 8px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">' + list.length + " processes</div>";
         list.forEach(function (p) {
             var safeName = escapeHtml(p.name);
-            html += '<div class="flex items-center justify-between px-3 py-1.5 hover:bg-slate-50 rounded text-sm">' +
-                '<span class="text-slate-700 truncate flex-1">' + safeName + "</span>" +
-                '<span class="text-slate-400 w-12 text-right font-mono">' + p.pid + "</span>" +
-                '<span class="text-slate-400 w-16 text-right font-mono">' + p.memory_mb.toFixed(1) + " MB</span>" +
-                '<span class="w-10 text-right">' +
-                '<button class="text-[10px] font-bold text-red-500 hover:text-white hover:bg-red-500 px-1.5 py-0.5 rounded transition-all kill-btn" data-pid="' + p.pid + '" data-name="' + safeName.replace(/"/g, "&quot;") + '">Kill</button></span></div>';
+            html += '<div class="process-item">' +
+                '<span class="name">' + safeName + "</span>" +
+                '<span class="pid">' + p.pid + "</span>" +
+                '<span class="mem">' + p.memory_mb.toFixed(1) + " MB</span>" +
+                '<span class="action">' +
+                '<button class="kill-btn" data-pid="' + p.pid + '" data-name="' + safeName.replace(/"/g, "&quot;") + '">KILL</button></span></div>';
         });
         panelProcessList.innerHTML = html;
 
@@ -244,8 +244,8 @@
         if (!deviceTableBody) return;
         var list = getFilteredDevices();
         if (list.length === 0) {
-            deviceTableBody.innerHTML = '<tr><td colspan="8" class="px-5 py-8 text-center text-slate-400 text-sm">' +
-                "No devices found. Start an agent to see it here.</td></tr>";
+            deviceTableBody.innerHTML = '<tr><td colspan="8" style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:12px">' +
+                "> NO DEVICES FOUND. START AN AGENT TO SEE IT HERE.</td></tr>";
             return;
         }
 
@@ -261,22 +261,22 @@
             var ramWidth = (d.ram_usage || 0) + "%";
 
             return '<tr class="' + rowClass + '" data-device-id="' + d.device_id + '">' +
-                '<td class="py-3"><div class="device-name-cell">' +
+                '<td><div class="device-name-cell">' +
                 '<span class="material-symbols-outlined">laptop_mac</span>' +
                 '<span class="device-name">' + escapeHtml(d.hostname) + "</span></div></td>" +
-                '<td class="py-3 font-mono text-sm">' + escapeHtml(d.ip) + "</td>" +
-                '<td class="py-3 text-sm">' + escapeHtml(d.os) + "</td>" +
-                '<td class="py-3"><span class="badge ' + badgeClass + '">' +
-                (d.status === "online" ? "Online" : "Offline") + "</span></td>" +
-                '<td class="py-3" style="min-width:140px"><div class="flex flex-col gap-1.5">' +
+                '<td class="device-ip">' + escapeHtml(d.ip) + "</td>" +
+                '<td style="font-size:12px">' + escapeHtml(d.os) + "</td>" +
+                '<td><span class="badge ' + badgeClass + '">' +
+                (d.status === "online" ? "ONLINE" : "OFFLINE") + "</span></td>" +
+                '<td style="min-width:140px"><div style="display:flex;flex-direction:column;gap:4px">' +
                 '<div class="mini-bar"><span class="mini-bar-label">CPU</span>' +
                 '<div class="mini-bar-track"><div class="mini-bar-fill blue" style="width:' + cpuWidth + '"></div></div>' +
                 '<span class="mini-bar-value">' + (d.cpu_usage || 0) + "%</span></div>" +
                 '<div class="mini-bar"><span class="mini-bar-label">RAM</span>' +
                 '<div class="mini-bar-track"><div class="mini-bar-fill amber" style="width:' + ramWidth + '"></div></div>' +
                 '<span class="mini-bar-value">' + (d.ram_usage || 0) + "%</span></div></div></td>" +
-                '<td class="py-3" style="min-width:110px">' + formatHeartbeat(d.last_heartbeat) + "</td>" +
-                '<td class="py-3" style="width:40px"><button class="row-more-btn" data-device-id="' + d.device_id + '">' +
+                '<td style="min-width:110px">' + formatHeartbeat(d.last_heartbeat) + "</td>" +
+                '<td style="width:40px"><button class="row-more-btn" data-device-id="' + d.device_id + '">' +
                 '<span class="material-symbols-outlined">more_vert</span></button></td></tr>';
         }).join("");
 
@@ -485,9 +485,8 @@
         btnAdminMode.addEventListener("click", function () {
             if (isAdminMode) {
                 isAdminMode = false;
-                btnAdminMode.classList.add("bg-blue-50", "text-blue-700", "border-blue-200");
-                btnAdminMode.classList.remove("bg-blue-600", "text-white", "border-blue-600");
-                if (adminModeLabel) adminModeLabel.textContent = "Admin Mode";
+                btnAdminMode.classList.remove("active");
+                if (adminModeLabel) adminModeLabel.textContent = "ADMIN";
                 showNotification("Admin mode disabled", "success");
                 hideRowActions();
                 return;
@@ -722,9 +721,8 @@
         }
         function onSuccess() {
             isAdminMode = true;
-            btnAdminMode.classList.remove("bg-blue-50", "text-blue-700", "border-blue-200");
-            btnAdminMode.classList.add("bg-blue-600", "text-white", "border-blue-600");
-            if (adminModeLabel) adminModeLabel.textContent = "Admin ON";
+            btnAdminMode.classList.add("active");
+            if (adminModeLabel) adminModeLabel.textContent = "UNLOCKED";
             showNotification("Admin mode enabled", "success");
             hideRowActions();
             cleanup();
@@ -756,7 +754,23 @@
         });
     }
 
+    var btnFullscreen = $("btnFullscreen");
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener("click", function () {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                btnFullscreen.querySelector(".material-symbols-outlined").textContent = "fullscreen_exit";
+            } else {
+                document.exitFullscreen();
+                btnFullscreen.querySelector(".material-symbols-outlined").textContent = "fullscreen";
+            }
+        });
+    }
+
     function init() {
+        document.body.classList.add("power-on");
+        setTimeout(function () { document.body.classList.remove("power-on"); }, 600);
+
         fetch(API + "/api/devices")
             .then(function (res) {
                 if (!res.ok) throw new Error("HTTP " + res.status);

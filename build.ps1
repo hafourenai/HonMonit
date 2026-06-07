@@ -1,5 +1,5 @@
 param(
-    [string]$ServerUrl = "ws://localhost:8000/ws/agent"
+    [string]$ServerUrl = "ws://192.168.1.6:8000/ws/agent"
 )
 
 $ErrorActionPreference = "Stop"
