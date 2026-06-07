@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import asyncio
-import uuid
 import socket
 import platform
 import subprocess
@@ -11,6 +10,8 @@ import logging
 import websockets
 import psutil
 
+from agent.identity import DeviceIdentity
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -18,28 +19,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("honmonit.agent")
 
-DEVICE_ID_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), ".device_id"
-)
 RECONNECT_BASE = 2
 RECONNECT_MAX = 60
-
-
-def load_device_id() -> str:
-    try:
-        with open(DEVICE_ID_FILE, "r") as f:
-            val = f.read().strip()
-            if val:
-                return val
-    except (FileNotFoundError, OSError):
-        pass
-    val = str(uuid.uuid4())
-    try:
-        with open(DEVICE_ID_FILE, "w") as f:
-            f.write(val)
-    except OSError:
-        pass
-    return val
 
 
 def get_hostname() -> str:
@@ -126,10 +107,34 @@ async def heartbeat_loop(ws, device_id, hb_stats: dict):
             break
 
 
-async def main():
-    server_url = sys.argv[1] if len(sys.argv) > 1 else "ws://localhost:8000/ws/agent"
+def _app_dir() -> str:
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
 
-    device_id = load_device_id()
+
+def resolve_server_url() -> str:
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    env_url = os.environ.get("HONMONIT_SERVER")
+    if env_url:
+        return env_url
+    config_path = os.path.join(_app_dir(), "config.json")
+    try:
+        with open(config_path, "r") as f:
+            cfg = json.load(f)
+            url = cfg.get("server_url")
+            if url:
+                return url
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return "ws://localhost:8000/ws/agent"
+
+
+async def main():
+    server_url = resolve_server_url()
+
+    device_id = DeviceIdentity().device_id
     register_payload = {
         "type": "register",
         "device_id": device_id,

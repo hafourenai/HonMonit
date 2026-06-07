@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.spec
+build/
+release/
+!release/config.json
+!release/start-agent.bat
+!release/README.txt
+agent/.device_id
+agent/.device-identity.json
+.env
+*.egg-info/
+dist/
+.pytest_cache/
+*.log
