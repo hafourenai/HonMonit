@@ -245,7 +245,7 @@
         var list = getFilteredDevices();
         if (list.length === 0) {
             deviceTableBody.innerHTML = '<tr><td colspan="8" style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:12px">' +
-                "> NO DEVICES FOUND. START AN AGENT TO SEE IT HERE.</td></tr>";
+                "NO DEVICES FOUND. START AN AGENT TO SEE IT HERE.</td></tr>";
             return;
         }
 
@@ -339,7 +339,7 @@
 
         if (panelDeviceName) panelDeviceName.textContent = device.hostname || "Unknown";
 
-        var dotColor = device.status === "online" ? "#10b981" : "#ef4444";
+        var dotColor = device.status === "online" ? "#33cc66" : "#ee3333";
         if (panelStatusDot) {
             panelStatusDot.style.background = dotColor;
             panelStatusDot.classList.toggle("status-pulse", device.status === "online");
