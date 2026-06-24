@@ -37,6 +37,8 @@
 
     var panelProcessList = $("panelProcessList");
     var processSearchInput = $("processSearchInput");
+    var processCount = $("processCount");
+    var btnProcessRefresh = $("btnProcessRefresh");
     var btnRefresh = $("btnRefresh");
 
     var statTotal = $("totalDevices");
@@ -128,7 +130,11 @@
         list.innerHTML = html;
     }
 
-    function doKill(deviceId, pid, name) {
+    function doKill(deviceId, pid, name, btnEl) {
+        if (btnEl) {
+            btnEl.classList.add("killing");
+            btnEl.innerHTML = '<span class="material-symbols-outlined kill-icon" style="font-size:13px">refresh</span> Killing';
+        }
         fetch(API + "/api/devices/" + deviceId + "/kill", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -136,6 +142,10 @@
         })
             .then(function (res) { return res.json(); })
             .then(function (data) {
+                if (btnEl) {
+                    btnEl.classList.remove("killing");
+                    btnEl.innerHTML = '<span class="material-symbols-outlined kill-icon">close</span> Kill';
+                }
                 if (data.success) {
                     showNotification(name + " (PID " + pid + ") terminated successfully", "success");
                     loadProcesses(deviceId);
@@ -144,8 +154,36 @@
                 }
             })
             .catch(function () {
+                if (btnEl) {
+                    btnEl.classList.remove("killing");
+                    btnEl.innerHTML = '<span class="material-symbols-outlined kill-icon">close</span> Kill';
+                }
                 showNotification("Failed to kill " + name + ": Network error", "error");
             });
+    }
+
+    function showKillConfirm(name, pid, onConfirm) {
+        var overlay = document.createElement("div");
+        overlay.className = "modal-overlay";
+        overlay.innerHTML =
+            '<div class="modal-dialog">' +
+            '<div class="modal-title">Terminate Process</div>' +
+            '<div class="modal-body">Are you sure you want to kill <strong>' + escapeHtml(name) + '</strong> (PID ' + pid + ')?</div>' +
+            '<div class="modal-actions">' +
+            '<button class="modal-btn modal-btn-cancel">Cancel</button>' +
+            '<button class="modal-btn modal-btn-danger">Terminate</button>' +
+            "</div></div>";
+        document.body.appendChild(overlay);
+        overlay.querySelector(".modal-btn-cancel").addEventListener("click", function () {
+            overlay.remove();
+        });
+        overlay.querySelector(".modal-btn-danger").addEventListener("click", function () {
+            overlay.remove();
+            onConfirm();
+        });
+        overlay.addEventListener("click", function (e) {
+            if (e.target === overlay) overlay.remove();
+        });
     }
 
     function doRestartDevice(deviceId) {
@@ -170,22 +208,31 @@
 
     var _lastProcessList = [];
 
+    function stopProcessRefreshSpin() {
+        if (btnProcessRefresh) btnProcessRefresh.classList.remove("spinning");
+    }
+
     function loadProcesses(deviceId) {
         if (!panelProcessList) return;
-        panelProcessList.innerHTML = '<div class="empty-state"><p>Loading processes...</p></div>';
+        panelProcessList.innerHTML = '<div class="empty-state"><p><span class="material-symbols-outlined" style="font-size:18px;vertical-align:-4px;animation:spin 0.8s linear infinite;display:inline-block">refresh</span> Loading processes...</p></div>';
+        if (processCount) processCount.textContent = "";
 
         fetch(API + "/api/devices/" + deviceId + "/processes", { method: "POST" })
             .then(function (res) { return res.json(); })
             .then(function (data) {
+                stopProcessRefreshSpin();
                 if (data.success && data.data && data.data.processes) {
                     _lastProcessList = data.data.processes;
                     renderProcessList(_lastProcessList);
                 } else {
                     panelProcessList.innerHTML = '<div class="empty-state"><p>' + escapeHtml(data.error || "Failed") + "</p></div>";
+                    if (processCount) processCount.textContent = "0";
                 }
             })
             .catch(function () {
+                stopProcessRefreshSpin();
                 panelProcessList.innerHTML = '<div class="empty-state"><p>Failed to retrieve process list</p></div>';
+                if (processCount) processCount.textContent = "0";
             });
     }
 
@@ -193,33 +240,45 @@
         if (!panelProcessList) return;
         if (!list || list.length === 0) {
             panelProcessList.innerHTML = '<div class="empty-state"><p>No processes found.</p></div>';
+            if (processCount) processCount.textContent = "0";
             return;
         }
         var html = '<div class="process-list-header">' +
             '<span>Process Name</span>' +
             '<span>PID</span>' +
             '<span>Memory</span>' +
-            '<span>Action</span></div>' +
-            '<div style="padding:4px 8px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">' + list.length + " processes</div>";
+            '<span>Action</span></div>';
+        var maxMem = 0;
+        list.forEach(function (p) {
+            if (p.memory_mb > maxMem) maxMem = p.memory_mb;
+        });
+        if (maxMem < 1) maxMem = 1;
         list.forEach(function (p) {
             var safeName = escapeHtml(p.name);
+            var memMb = p.memory_mb;
+            var memPct = Math.min((memMb / maxMem) * 100, 100);
+            var barColor = memMb > 500 ? "var(--danger)" : memMb > 200 ? "var(--warning)" : "var(--accent)";
             html += '<div class="process-item">' +
-                '<span class="name">' + safeName + "</span>" +
+                '<span class="name"><span class="material-symbols-outlined proc-icon">dns</span>' + safeName + "</span>" +
                 '<span class="pid">' + p.pid + "</span>" +
-                '<span class="mem">' + p.memory_mb.toFixed(1) + " MB</span>" +
+                '<span class="mem">' +
+                '<div class="mem-bar"><div class="mem-bar-fill" style="width:' + memPct.toFixed(0) + "%;background:" + barColor + '"></div></div>' +
+                memMb.toFixed(1) + " MB</span>" +
                 '<span class="action">' +
-                '<button class="kill-btn" data-pid="' + p.pid + '" data-name="' + safeName.replace(/"/g, "&quot;") + '">KILL</button></span></div>';
+                '<button class="kill-btn" data-pid="' + p.pid + '" data-name="' + safeName.replace(/"/g, "&quot;") + '">' +
+                '<span class="material-symbols-outlined kill-icon">close</span> Kill</button></span></div>';
         });
         panelProcessList.innerHTML = html;
+        if (processCount) processCount.textContent = list.length + " process" + (list.length !== 1 ? "es" : "");
 
         Array.from(panelProcessList.querySelectorAll(".kill-btn")).forEach(function (btn) {
             btn.addEventListener("click", function (e) {
                 e.stopPropagation();
                 var pid = parseInt(this.dataset.pid, 10);
                 var name = this.dataset.name;
-                if (confirm("Terminate " + name + " (PID " + pid + ")?")) {
-                    doKill(selectedDeviceId, pid, name);
-                }
+                showKillConfirm(name, pid, function () {
+                    doKill(selectedDeviceId, pid, name, btn);
+                });
             });
         });
     }
@@ -468,6 +527,15 @@
     if (btnRefresh) {
         btnRefresh.addEventListener("click", function () {
             if (selectedDeviceId) loadProcesses(selectedDeviceId);
+        });
+    }
+
+    if (btnProcessRefresh) {
+        btnProcessRefresh.addEventListener("click", function () {
+            if (selectedDeviceId) {
+                btnProcessRefresh.classList.add("spinning");
+                loadProcesses(selectedDeviceId);
+            }
         });
     }
 
