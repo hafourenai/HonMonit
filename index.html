@@ -294,12 +294,20 @@
     </div>
 
     <div class="panel-tab-content" id="tab-processes">
-      <div class="process-search">
-        <span class="material-symbols-outlined">search</span>
-        <input id="processSearchInput" type="text" placeholder="Filter processes..."/>
+      <div class="process-toolbar">
+        <div class="process-search">
+          <span class="material-symbols-outlined">search</span>
+          <input id="processSearchInput" type="text" placeholder="Filter processes..."/>
+        </div>
+        <div class="process-toolbar-right">
+          <span class="process-count" id="processCount"></span>
+          <button class="process-refresh-btn" id="btnProcessRefresh" title="Refresh processes">
+            <span class="material-symbols-outlined">refresh</span>
+          </button>
+        </div>
       </div>
-      <div id="panelProcessList">
-        <div class="empty-state" style="padding:24px">
+      <div class="process-list-container" id="panelProcessList">
+        <div class="empty-state">
           <p>Select a device to see running processes.</p>
         </div>
       </div>
