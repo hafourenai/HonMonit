@@ -9,13 +9,13 @@
 │                  │ ◄──────────────────────────► │                  │
 │  Dashboard       │          wss://host/         │  Server          │
 │  (Browser)       │       /ws/dashboard          │  (FastAPI)       │
-│                  │                               │                  │
-└──────────────────┘                               └────────┬─────────┘
-                                                            │
-                                           WebSocket        │ REST
-                                           /ws/agent        │ /api/devices/…
-                                                            │
-                                                  ┌─────────▼─────────┐
+│                  │                              │                  │
+└──────────────────┘                              └────────┬─────────┘
+                                                           │
+                                           WebSocket       │ REST
+                                           /ws/agent       │ /api/devices/…
+                                                           │
+                                                  ┌────────▼──────────┐
                                                   │                   │
                                                   │  Agent            │
                                                   │  (Python)         │
@@ -39,12 +39,12 @@ The system uses a **hub‑and‑spoke** topology:
 Agent                           Server                     Dashboard
   │                               │                            │
   │  ── register {device_id,…} ──►│                            │
-  │                               │  ── device_added ────────►│
+  │                               │  ── device_added ─────────►│
   │                               │                            │
-  │  ── heartbeat (30s) ────────►│                            │
-  │                               │  ── device_updated ──────►│
-  │  ── heartbeat (30s) ────────►│                            │
-  │                               │  ── device_updated ──────►│
+  │  ── heartbeat (30s) ─────────►│                            │
+  │                               │  ── device_updated ───────►│
+  │  ── heartbeat (30s) ─────────►│                            │
+  │                               │  ── device_updated ───────►│
   │                               │                            │
 ```
 
@@ -58,7 +58,7 @@ Dashboard/API                    Server                     Agent
      │ ──────────────────────────►  │                          │
      │                              │  ── command (id, cmd) ──►│
      │                              │                          │
-     │                              │  ◄── command_result ────│
+     │                              │  ◄── command_result ─────│
      │  ◄── {success, data} ──────  │                          │
 ```
 
