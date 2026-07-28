@@ -243,30 +243,30 @@
             if (processCount) processCount.textContent = "0";
             return;
         }
-        var html = '<div class="process-list-header">' +
-            '<span>Process Name</span>' +
-            '<span>PID</span>' +
-            '<span>Memory</span>' +
-            '<span>Action</span></div>';
         var maxMem = 0;
         list.forEach(function (p) {
             if (p.memory_mb > maxMem) maxMem = p.memory_mb;
         });
         if (maxMem < 1) maxMem = 1;
+        var html = '<div class="process-list-header">' +
+            '<span class="name-hdr">Process</span>' +
+            '<span class="pid-hdr">PID</span>' +
+            '<span class="mem-hdr">Memory</span>' +
+            '<span class="action-hdr"></span></div>';
         list.forEach(function (p) {
             var safeName = escapeHtml(p.name);
             var memMb = p.memory_mb;
             var memPct = Math.min((memMb / maxMem) * 100, 100);
-            var barColor = memMb > 500 ? "var(--danger)" : memMb > 200 ? "var(--warning)" : "var(--accent)";
+            var barHue = memMb > 500 ? "var(--danger)" : memMb > 200 ? "var(--warning)" : "var(--accent)";
             html += '<div class="process-item">' +
-                '<span class="name"><span class="material-symbols-outlined proc-icon">dns</span>' + safeName + "</span>" +
+                '<span class="name">' + safeName + "</span>" +
                 '<span class="pid">' + p.pid + "</span>" +
                 '<span class="mem">' +
-                '<div class="mem-bar"><div class="mem-bar-fill" style="width:' + memPct.toFixed(0) + "%;background:" + barColor + '"></div></div>' +
-                memMb.toFixed(1) + " MB</span>" +
+                '<div class="mem-bar"><div class="mem-bar-fill" style="width:' + memPct.toFixed(0) + "%;background:" + barHue + '"></div></div>' +
+                memMb.toFixed(1) + "</span>" +
                 '<span class="action">' +
                 '<button class="kill-btn" data-pid="' + p.pid + '" data-name="' + safeName.replace(/"/g, "&quot;") + '">' +
-                '<span class="material-symbols-outlined kill-icon">close</span> Kill</button></span></div>';
+                '<span class="material-symbols-outlined kill-icon">close</span></button></span></div>';
         });
         panelProcessList.innerHTML = html;
         if (processCount) processCount.textContent = list.length + " process" + (list.length !== 1 ? "es" : "");
@@ -401,7 +401,6 @@
         var dotColor = device.status === "online" ? "#33cc66" : "#ee3333";
         if (panelStatusDot) {
             panelStatusDot.style.background = dotColor;
-            panelStatusDot.classList.toggle("status-pulse", device.status === "online");
         }
 
         if (panelSessionUser)
