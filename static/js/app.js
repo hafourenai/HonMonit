@@ -436,6 +436,10 @@
 
         if (sidePanel) sidePanel.classList.remove("translate-x-full");
         if (panelOverlay) panelOverlay.classList.add("active");
+        
+        // Load metrics history
+        var hours = metricsHourSelect ? parseInt(metricsHourSelect.value, 10) : 24;
+        loadMetricsHistory(deviceId, hours);
     }
 
     var _wsReconnectAttempt = 0;
@@ -830,6 +834,169 @@
             } else {
                 document.exitFullscreen();
                 btnFullscreen.querySelector(".material-symbols-outlined").textContent = "fullscreen";
+            }
+        });
+    }
+
+    var metricsCharts = {};
+
+    function loadMetricsHistory(deviceId, hours) {
+        fetch(API + "/api/devices/" + deviceId + "/metrics?hours=" + hours)
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.success && data.data && data.data.metrics) {
+                    renderMetricsCharts(data.data.metrics);
+                }
+            })
+            .catch(function (err) {
+                console.error("Failed to load metrics:", err);
+            });
+    }
+
+    function renderMetricsCharts(metrics) {
+        if (metrics.length === 0) {
+            return;
+        }
+
+        var timestamps = [];
+        var cpuData = [];
+        var ramData = [];
+        var diskData = [];
+
+        metrics.forEach(function (m) {
+            var time = new Date(m.timestamp);
+            timestamps.push(time.getHours() + ":" + (time.getMinutes() < 10 ? "0" : "") + time.getMinutes());
+            cpuData.push(m.cpu_usage);
+            ramData.push(m.ram_usage);
+            diskData.push(m.disk_usage);
+        });
+
+        var chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false,
+                },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        color: "var(--text-muted)",
+                    },
+                    grid: {
+                        color: "var(--border)",
+                    },
+                },
+                x: {
+                    ticks: {
+                        color: "var(--text-muted)",
+                    },
+                    grid: {
+                        color: "var(--border)",
+                    },
+                },
+            },
+        };
+
+        // CPU Chart
+        var cpuCtx = document.getElementById("cpuChart");
+        if (cpuCtx) {
+            if (metricsCharts.cpu) {
+                metricsCharts.cpu.destroy();
+            }
+            metricsCharts.cpu = new Chart(cpuCtx, {
+                type: "line",
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: "CPU %",
+                            data: cpuData,
+                            borderColor: "var(--info)",
+                            backgroundColor: "rgba(74, 122, 181, 0.1)",
+                            tension: 0.4,
+                            fill: true,
+                        },
+                    ],
+                },
+                options: chartOptions,
+            });
+        }
+
+        // RAM Chart
+        var ramCtx = document.getElementById("ramChart");
+        if (ramCtx) {
+            if (metricsCharts.ram) {
+                metricsCharts.ram.destroy();
+            }
+            metricsCharts.ram = new Chart(ramCtx, {
+                type: "line",
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: "RAM %",
+                            data: ramData,
+                            borderColor: "var(--warning)",
+                            backgroundColor: "rgba(255, 204, 0, 0.1)",
+                            tension: 0.4,
+                            fill: true,
+                        },
+                    ],
+                },
+                options: chartOptions,
+            });
+        }
+
+        // Disk Chart
+        var diskCtx = document.getElementById("diskChart");
+        if (diskCtx) {
+            if (metricsCharts.disk) {
+                metricsCharts.disk.destroy();
+            }
+            metricsCharts.disk = new Chart(diskCtx, {
+                type: "line",
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: "Disk %",
+                            data: diskData,
+                            borderColor: "var(--success)",
+                            backgroundColor: "rgba(51, 204, 102, 0.1)",
+                            tension: 0.4,
+                            fill: true,
+                        },
+                    ],
+                },
+                options: chartOptions,
+            });
+        }
+    }
+
+    var metricsHourSelect = $("metricsHourSelect");
+    var btnMetricsRefresh = $("btnMetricsRefresh");
+
+    if (metricsHourSelect) {
+        metricsHourSelect.addEventListener("change", function () {
+            if (selectedDeviceId) {
+                loadMetricsHistory(selectedDeviceId, parseInt(this.value, 10));
+            }
+        });
+    }
+
+    if (btnMetricsRefresh) {
+        btnMetricsRefresh.addEventListener("click", function () {
+            if (selectedDeviceId) {
+                btnMetricsRefresh.classList.add("loading");
+                var hours = metricsHourSelect ? parseInt(metricsHourSelect.value, 10) : 24;
+                loadMetricsHistory(selectedDeviceId, hours);
+                setTimeout(function () {
+                    btnMetricsRefresh.classList.remove("loading");
+                }, 1000);
             }
         });
     }

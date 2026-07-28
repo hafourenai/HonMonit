@@ -11,6 +11,7 @@ import websockets
 import psutil
 
 from agent.identity import DeviceIdentity
+from server.auth import create_access_token
 
 logging.basicConfig(
     level=logging.INFO,
@@ -131,10 +132,36 @@ def resolve_server_url() -> str:
     return "ws://localhost:8000/ws/agent"
 
 
+def get_api_key() -> str:
+    """Get API key from environment or config."""
+    env_key = os.environ.get("HONMONIT_API_KEY")
+    if env_key:
+        return env_key
+    
+    config_path = os.path.join(_app_dir(), "config.json")
+    try:
+        with open(config_path, "r") as f:
+            cfg = json.load(f)
+            key = cfg.get("api_key")
+            if key:
+                return key
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    
+    return None
+
+
 async def main():
     server_url = resolve_server_url()
+    api_key = get_api_key()
 
     device_id = DeviceIdentity().device_id
+    
+    # Create JWT token for agent authentication
+    agent_token = create_access_token(
+        {"type": "agent", "device_id": device_id}
+    )
+    
     register_payload = {
         "type": "register",
         "device_id": device_id,
@@ -142,6 +169,7 @@ async def main():
         "username": get_username(),
         "ip": get_ip(),
         "os": get_os(),
+        "token": agent_token,
     }
 
     logger.info("device_id = %s", device_id)
@@ -155,7 +183,15 @@ async def main():
 
     while True:
         try:
-            async with websockets.connect(server_url) as ws:
+            # Build WebSocket headers with API key if available
+            headers = {}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            
+            async with websockets.connect(
+                server_url,
+                extra_headers=headers if headers else None,
+            ) as ws:
                 attempt = 0
                 await ws.send(json.dumps(register_payload))
                 logger.info("Registered — starting heartbeat")
