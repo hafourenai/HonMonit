@@ -7,9 +7,67 @@
     var devices = {};
     var selectedDeviceId = null;
     var currentFilter = "all";
+    var currentProcessFilter = "all";
     var searchQuery = "";
     var isAdminMode = false;
     var deviceNotifications = [];
+
+    // List of common Windows system processes to filter out
+    var SYSTEM_PROCESSES = [
+        "System Idle Process", "System", "Registry", "smss.exe", "csrss.exe",
+        "wininit.exe", "winlogon.exe", "services.exe", "lsass.exe", "fontdrvhost.exe",
+        "dwm.exe", "explorer.exe", "ShellExperienceHost.exe", "RuntimeBroker.exe",
+        "SearchHost.exe", "SearchIndexer.exe", "SettingSyncHost.exe", "taskhostw.exe",
+        "svchost.exe", "conhost.exe", "dllhost.exe", "audiodg.exe", "dasHost.exe",
+        "LsaIso.exe", "Memory Compression", "MsMpEng.exe", "NisSrv.exe", "WmiPrvSE.exe",
+        "WUDFHost.exe", "GameInputTcpNet.exe", "spoolsv.exe", "RtkAudUService64.exe",
+        "Lightshot.exe", "msedge.exe", "NVIDIA Container", "nvcontainer.exe", "GoogleUpdater.exe",
+        "Code.exe", "Discord.exe", "chrome.exe", "firefox.exe", "steam.exe", "Spotify.exe",
+        "OneDrive.exe", "synaptics.exe", "HP.exe", "Dell.exe", "Lenovo.exe", "Apple.exe",
+        "jusched.exe", "ctfmon.exe", "nvvsvc.exe", "nvtray.exe", "igfxHK.exe", "hkcmd.exe",
+        "igfxEM.exe", "avgidsagent.exe", "AvastSvc.exe", "mbam.exe", "VBoxTray.exe",
+        "vmtoolsd.exe", "vmware-tray.exe", "Dropbox.exe", "Skype.exe", "Zoom.exe", "Teams.exe",
+        "Slack.exe", "EpicGamesLauncher.exe", "RiotClientServices.exe", "Valorant.exe",
+        "LeagueOfLegends.exe", "MinecraftLauncher.exe", "java.exe", "javaw.exe", "python.exe",
+        "pythonw.exe", "node.exe", "npm.exe", "yarn.exe", "php.exe", "go.exe", "dotnet.exe",
+        "powershell.exe", "pwsh.exe", "cmd.exe", "bash.exe", "wsl.exe", "git.exe", "code.exe",
+        "SystemSettings.exe", "TextInputHost.exe", "YourPhone.exe", "OneDriveStandaloneUpdater.exe",
+        "RuntimeBroker.exe", "SecurityHealthService.exe", "SgrmBroker.exe", "SgrmHost.exe",
+        "shellexperiencehost.exe", "smartscreen.exe", "StartMenuExperienceHost.exe", "SystemSettings.exe",
+        "TabTip.exe", "taskhostw.exe", "TextInputHost.exe", "unsecapp.exe", "UPP.exe",
+        "WmiApSrv.exe", "WmiPrvSE.exe", "WUDFHost.exe", "YourPhone.exe", "Calculator.exe",
+        "notepad.exe", "write.exe", "mspaint.exe", "SnippingTool.exe", "StickyNotes.exe",
+        "MicrosoftEdge.exe", "MicrosoftEdgeCP.exe", "SearchUI.exe", "Cortana.exe", "dllhost.exe",
+        "audiodg.exe", "MsSense.exe", "SenseNdr.exe", "MsSense.exe", "SenseNdr.exe",
+        "SecurityHealthService.exe", "WSService.exe", "NVIDIA Web Helper.exe", "nvbackend.exe",
+        "nvdisplay.container.exe", "nvtelemetrycontainer.exe", "nvxdsync.exe", "nvsphelper64.exe",
+        "nvwirelesscontroller.exe", "audiodg.exe", "Realtek HD Audio Background Process",
+        "RtkAudUService64.exe", "RtkAudUService.exe", "WavesSvc64.exe", "WavesSvc.exe",
+        "RavBg64.exe", "RAVBg.exe", "RavService64.exe", "RavService.exe", "Razer Synapse Service.exe",
+        "Razer Central.exe", "RzUpdater.exe", "RzSDKService.exe", "Synaptics.exe", "SynTPEnh.exe",
+        "SynTPHelper.exe", "HP Omen Command Center.exe", "HP Support Assistant.exe",
+        "Dell SupportAssist.exe", "Lenovo Vantage Service.exe", "Lenovo Vantage.exe",
+        "AppleMobileDeviceService.exe", "iTunesHelper.exe", "ApplePushService.exe",
+        "Bonjour Service.exe", "DiscordUpdater.exe", "Update.exe", "squirrel.exe", "Teams.exe",
+        "Microsoft.SharePoint.exe", "Microsoft.Teams.Extra.exe", "BackgroundTransferHost.exe",
+        "OneNote.exe", "Outlook.exe", "PowerPoint.exe", "WinWord.exe", "Excel.exe",
+        "Creative Cloud.exe", "Adobe CEF Helper.exe", "Adobe Desktop Service.exe",
+        "Adobe GC Client.exe", "SteamService.exe", "SteamWebHelper.exe", "GameOverlayUI.exe",
+        "OriginWebHelperService.exe", "Origin.exe", "Battle.net.exe", "Blizzard Update Agent.exe",
+        "Agent.exe", "UbisoftGameLauncher.exe", "UbisoftGameLauncher64.exe", "Uplay.exe",
+        "EpicWebHelper.exe", "EpicGamesLauncher.exe", "FortniteClient-Win64-Shipping.exe",
+        "cefsharp.browsersubprocess.exe", "RiotClientServices.exe", "RiotClientUx.exe",
+        "RiotClientUxRender.exe", "LeagueClient.exe", "LeagueClientUx.exe", "LeagueClientUxRender.exe",
+        "VALORANT.exe", "MsMpEng.exe", "NisSrv.exe", "WmiPrvSE.exe", "WUDFHost.exe",
+        "RuntimeBroker.exe", "SystemSettings.exe", "TextInputHost.exe", "YourPhone.exe",
+        "OneDriveStandaloneUpdater.exe", "SecurityHealthService.exe", "SgrmBroker.exe",
+        "SgrmHost.exe", "shellexperiencehost.exe", "smartscreen.exe", "StartMenuExperienceHost.exe",
+        "TabTip.exe", "taskhostw.exe", "TextInputHost.exe", "unsecapp.exe", "UPP.exe",
+        "WmiApSrv.exe", "WmiPrvSE.exe", "WUDFHost.exe", "YourPhone.exe", "Calculator.exe",
+        "notepad.exe", "write.exe", "mspaint.exe", "SnippingTool.exe", "StickyNotes.exe",
+        "MicrosoftEdge.exe", "MicrosoftEdgeCP.exe", "SearchUI.exe", "Cortana.exe",
+        // Add more common system/background processes as needed
+    ].map(name => name.toLowerCase());
 
     var $ = function (id) { return document.getElementById(id); };
 
@@ -39,7 +97,9 @@
     var processSearchInput = $("processSearchInput");
     var processCount = $("processCount");
     var btnProcessRefresh = $("btnProcessRefresh");
-    var btnRefresh = $("btnRefresh");
+    var processFilterBtn = $("processFilterBtn");
+    var processFilterLabel = $("processFilterLabel");
+    var processFilterDropdown = $("processFilterDropdown");
 
     var statTotal = $("totalDevices");
     var statOnline = $("onlineCount");
@@ -162,27 +222,52 @@
             });
     }
 
-    function showKillConfirm(name, pid, onConfirm) {
-        var overlay = document.createElement("div");
-        overlay.className = "modal-overlay";
-        overlay.innerHTML =
-            '<div class="modal-dialog">' +
-            '<div class="modal-title">Terminate Process</div>' +
-            '<div class="modal-body">Are you sure you want to kill <strong>' + escapeHtml(name) + '</strong> (PID ' + pid + ')?</div>' +
-            '<div class="modal-actions">' +
-            '<button class="modal-btn modal-btn-cancel">Cancel</button>' +
-            '<button class="modal-btn modal-btn-danger">Terminate</button>' +
-            "</div></div>";
-        document.body.appendChild(overlay);
-        overlay.querySelector(".modal-btn-cancel").addEventListener("click", function () {
-            overlay.remove();
-        });
-        overlay.querySelector(".modal-btn-danger").addEventListener("click", function () {
-            overlay.remove();
+    var _lastProcessList = [];
+
+    // Custom Kill Confirm Modal
+    var killConfirmModal = $("killConfirmModal");
+    var killModalProcessName = $("killModalProcessName");
+    var killModalProcessPid = $("killModalProcessPid");
+    var killModalProcessMem = $("killModalProcessMem");
+    var killModalWarning = $("killModalWarning");
+    var killModalConfirm = $("killModalConfirm");
+    var killModalCancel = $("killModalCancel");
+    var killModalClose = $("killModalClose");
+
+    function showKillConfirmModal(name, pid, mem, onConfirm) {
+        if (!killConfirmModal) return;
+
+        killModalProcessName.textContent = name;
+        killModalProcessPid.textContent = pid;
+        killModalProcessMem.textContent = mem + " MB";
+
+        if (isSystemProcess(name)) {
+            killModalWarning.style.display = "block";
+        } else {
+            killModalWarning.style.display = "none";
+        }
+
+        killConfirmModal.classList.add("active");
+
+        var confirmHandler = function () {
             onConfirm();
-        });
-        overlay.addEventListener("click", function (e) {
-            if (e.target === overlay) overlay.remove();
+            killConfirmModal.classList.remove("active");
+            killModalConfirm.removeEventListener("click", confirmHandler);
+            killModalCancel.removeEventListener("click", cancelHandler);
+            killModalClose.removeEventListener("click", cancelHandler);
+        };
+        var cancelHandler = function () {
+            killConfirmModal.classList.remove("active");
+            killModalConfirm.removeEventListener("click", confirmHandler);
+            killModalCancel.removeEventListener("click", cancelHandler);
+            killModalClose.removeEventListener("click", cancelHandler);
+        };
+
+        killModalConfirm.addEventListener("click", confirmHandler);
+        killModalCancel.addEventListener("click", cancelHandler);
+        killModalClose.addEventListener("click", cancelHandler);
+        killConfirmModal.addEventListener("click", function (e) {
+            if (e.target === killConfirmModal) cancelHandler();
         });
     }
 
@@ -207,6 +292,26 @@
     }
 
     var _lastProcessList = [];
+
+    function isSystemProcess(processName) {
+        return SYSTEM_PROCESSES.includes(processName.toLowerCase());
+    }
+
+    function getFilteredProcesses(processes) {
+        var filtered = processes;
+
+        if (currentProcessFilter === "user") {
+            filtered = filtered.filter(p => !isSystemProcess(p.name));
+        } else if (currentProcessFilter === "system") {
+            filtered = filtered.filter(p => isSystemProcess(p.name));
+        }
+
+        if (processSearchInput && processSearchInput.value) {
+            var q = processSearchInput.value.toLowerCase();
+            filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
+        }
+        return filtered;
+    }
 
     function stopProcessRefreshSpin() {
         if (btnProcessRefresh) btnProcessRefresh.classList.remove("spinning");
@@ -238,13 +343,14 @@
 
     function renderProcessList(list) {
         if (!panelProcessList) return;
-        if (!list || list.length === 0) {
-            panelProcessList.innerHTML = '<div class="empty-state"><p>No processes found.</p></div>';
+        var filteredList = getFilteredProcesses(list);
+        if (!filteredList || filteredList.length === 0) {
+            panelProcessList.innerHTML = '<div class="empty-state"><p>No processes found matching filter.</p></div>';
             if (processCount) processCount.textContent = "0";
             return;
         }
         var maxMem = 0;
-        list.forEach(function (p) {
+        filteredList.forEach(function (p) {
             if (p.memory_mb > maxMem) maxMem = p.memory_mb;
         });
         if (maxMem < 1) maxMem = 1;
@@ -253,7 +359,7 @@
             '<span class="pid-hdr">PID</span>' +
             '<span class="mem-hdr">Memory</span>' +
             '<span class="action-hdr"></span></div>';
-        list.forEach(function (p) {
+        filteredList.forEach(function (p) {
             var safeName = escapeHtml(p.name);
             var memMb = p.memory_mb;
             var memPct = Math.min((memMb / maxMem) * 100, 100);
@@ -265,18 +371,19 @@
                 '<div class="mem-bar"><div class="mem-bar-fill" style="width:' + memPct.toFixed(0) + "%;background:" + barHue + '"></div></div>' +
                 memMb.toFixed(1) + "</span>" +
                 '<span class="action">' +
-                '<button class="kill-btn" data-pid="' + p.pid + '" data-name="' + safeName.replace(/"/g, "&quot;") + '">' +
-                '<span class="material-symbols-outlined kill-icon">close</span></button></span></div>';
+                '<button class="kill-btn" data-pid="' + p.pid + '" data-name="' + safeName.replace(/"/g, "&quot;") + '" data-mem="' + memMb.toFixed(1) + '">' +
+                '<span class="material-symbols-outlined kill-icon">close</span> Kill</button></span></div>';
         });
         panelProcessList.innerHTML = html;
-        if (processCount) processCount.textContent = list.length + " process" + (list.length !== 1 ? "es" : "");
+        if (processCount) processCount.textContent = filteredList.length + " process" + (filteredList.length !== 1 ? "es" : "");
 
         Array.from(panelProcessList.querySelectorAll(".kill-btn")).forEach(function (btn) {
             btn.addEventListener("click", function (e) {
                 e.stopPropagation();
                 var pid = parseInt(this.dataset.pid, 10);
                 var name = this.dataset.name;
-                showKillConfirm(name, pid, function () {
+                var mem = this.dataset.mem;
+                showKillConfirmModal(name, pid, mem, function () {
                     doKill(selectedDeviceId, pid, name, btn);
                 });
             });
@@ -519,11 +626,7 @@
 
     if (processSearchInput) {
         processSearchInput.addEventListener("input", function () {
-            var q = this.value.toLowerCase();
-            var filtered = _lastProcessList.filter(function (p) {
-                return p.name.toLowerCase().indexOf(q) !== -1;
-            });
-            renderProcessList(filtered);
+            renderProcessList(_lastProcessList);
         });
     }
 
@@ -539,6 +642,32 @@
                 btnProcessRefresh.classList.add("spinning");
                 loadProcesses(selectedDeviceId);
             }
+        });
+    }
+
+    if (processFilterBtn && processFilterDropdown) {
+        processFilterBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            processFilterDropdown.classList.toggle("active");
+        });
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest("#processFilterBtn") && !e.target.closest("#processFilterDropdown")) {
+                processFilterDropdown.classList.remove("active");
+            }
+        });
+
+        var filterOptions = processFilterDropdown.querySelectorAll(".dropdown-item");
+        filterOptions.forEach(function (opt) {
+            opt.addEventListener("click", function () {
+                processFilterDropdown.querySelectorAll(".dropdown-item").forEach(function (i) { i.classList.remove("active"); });
+                this.classList.add("active");
+                currentProcessFilter = this.dataset.filter;
+                if (processFilterLabel) {
+                    processFilterLabel.textContent = this.textContent;
+                }
+                renderProcessList(_lastProcessList);
+                processFilterDropdown.classList.remove("active");
+            });
         });
     }
 

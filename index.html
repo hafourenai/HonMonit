@@ -297,10 +297,22 @@
 
     <div class="panel-tab-content" id="tab-processes">
       <div class="process-toolbar">
-        <div class="process-search">
-          <span class="material-symbols-outlined">search</span>
-          <input id="processSearchInput" type="text" placeholder="Filter processes..."/>
-        </div>
+          <div class="process-search">
+            <span class="material-symbols-outlined">search</span>
+            <input id="processSearchInput" type="text" placeholder="Filter processes..."/>
+          </div>
+          <div class="filter-dropdown-wrapper" style="position:relative;">
+            <button id="processFilterBtn" class="btn btn-surface btn-sm">
+              <span class="material-symbols-outlined">filter_list</span>
+              <span id="processFilterLabel">All Processes</span>
+              <span class="material-symbols-outlined icon-right">arrow_drop_down</span>
+            </button>
+            <div id="processFilterDropdown" class="dropdown">
+              <button class="dropdown-item active" data-filter="all">All Processes</button>
+              <button class="dropdown-item" data-filter="user">User Applications</button>
+              <button class="dropdown-item" data-filter="system">System Processes</button>
+            </div>
+          </div>
         <div class="process-toolbar-right">
           <span class="process-count" id="processCount"></span>
           <button class="process-refresh-btn" id="btnProcessRefresh" title="Refresh processes">
@@ -490,16 +502,45 @@
   </div>
 </div>
 
-<div id="rowActionsMenu" class="row-actions-menu">
-  <button class="row-action-btn" data-action="details">
-    <span class="material-symbols-outlined">info</span> Details
-  </button>
-  <button class="row-action-btn text-danger admin-only" data-action="restart">
-    <span class="material-symbols-outlined">restart_alt</span> Restart
-  </button>
-  <button class="row-action-btn text-danger admin-only" data-action="shutdown">
-    <span class="material-symbols-outlined">power_settings_new</span> Shutdown
-  </button>
+<div id="killConfirmModal" class="modal-backdrop">
+  <div class="modal-content" style="max-width:420px;padding:0;overflow:hidden">
+    <div class="modal-header" style="background:var(--danger);color:white;padding:16px 20px;border-bottom:none">
+      <h2 class="modal-title" style="color:white">
+        <span class="material-symbols-outlined" style="color:white">warning</span>
+        Terminate Process
+      </h2>
+      <button class="modal-close modal-close-btn" style="color:white;opacity:0.8" id="killModalClose">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:20px">
+      <p style="font-size:14px;color:var(--text-primary);margin-bottom:16px;line-height:1.5">
+        You are about to terminate the following process. This action cannot be undone.
+      </p>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Process Name</div>
+        <div id="killModalProcessName" style="font-family:var(--font-mono);font-size:14px;color:var(--text-primary);margin-bottom:8px"></div>
+        
+        <div style="display:flex;gap:16px">
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">PID</div>
+            <div id="killModalProcessPid" style="font-family:var(--font-mono);font-size:13px;color:var(--text-secondary)"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Memory Usage</div>
+            <div id="killModalProcessMem" style="font-family:var(--font-mono);font-size:13px;color:var(--text-secondary)"></div>
+          </div>
+        </div>
+      </div>
+      <p id="killModalWarning" style="font-size:12px;color:var(--danger);margin-top:16px;display:none">
+        Warning: Terminating critical system processes may lead to system instability or crashes.
+      </p>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid var(--border)">
+      <button class="btn btn-surface modal-close-btn" id="killModalCancel">Cancel</button>
+      <button class="btn btn-danger" id="killModalConfirm">Terminate Process</button>
+    </div>
+  </div>
 </div>
 
 

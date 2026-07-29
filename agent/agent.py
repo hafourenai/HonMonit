@@ -190,7 +190,7 @@ async def main():
             
             async with websockets.connect(
                 server_url,
-                extra_headers=headers if headers else None,
+                additional_headers=headers if headers else None,
             ) as ws:
                 attempt = 0
                 await ws.send(json.dumps(register_payload))

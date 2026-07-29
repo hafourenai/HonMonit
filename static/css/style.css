@@ -1047,6 +1047,7 @@ table { border-collapse: collapse; width: 100%; }
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
 .process-toolbar-right {
@@ -1103,6 +1104,7 @@ table { border-collapse: collapse; width: 100%; }
 .process-search {
   position: relative;
   flex: 1;
+  min-width: 180px; /* Ensure search input doesn't get too small */
 }
 
 .process-search input {
@@ -1127,6 +1129,32 @@ table { border-collapse: collapse; width: 100%; }
   font-size: 16px;
   color: var(--text-muted);
   pointer-events: none;
+}
+
+.filter-dropdown-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.filter-dropdown-wrapper .btn {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.filter-dropdown-wrapper .btn .icon-right {
+  font-size: 18px;
+  margin-left: 4px;
+  margin-right: -4px;
+}
+
+.filter-dropdown-wrapper .dropdown {
+  min-width: 160px;
+  right: 0;
+  left: auto;
+}
+
+.filter-dropdown-wrapper .dropdown-item {
+  font-size: 12px;
 }
 
 .process-list-container {
